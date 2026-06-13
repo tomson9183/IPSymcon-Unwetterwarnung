@@ -1,0 +1,45 @@
+{
+    "elements": [
+        {
+            "type": "Select",
+            "name": "GemeindeARS",
+            "caption": "Gemeinde (Kartenmitte)",
+            "options": []
+        },
+        {
+            "type": "Select",
+            "name": "Zoom",
+            "caption": "Kartenausschnitt",
+            "options": [
+                { "caption": "Stadt (nah)", "value": 1 },
+                { "caption": "Region", "value": 2 },
+                { "caption": "Bundesland (weit)", "value": 3 }
+            ]
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "RefreshInterval",
+            "caption": "Bild-Aktualisierung (Sekunden)",
+            "minimum": 60,
+            "maximum": 3600,
+            "suffix": "s"
+        },
+        {
+            "type": "Label",
+            "caption": "Quelle: offener DWD-GeoServer (maps.dwd.de) – kein Login nötig. Das Niederschlagsradar wird vom DWD ca. alle 5 Minuten aktualisiert."
+        }
+    ],
+    "actions": [],
+    "status": [
+        {
+            "code": 102,
+            "icon": "active",
+            "caption": "Aktiv"
+        },
+        {
+            "code": 104,
+            "icon": "inactive",
+            "caption": "Nicht konfiguriert – bitte eine Gemeinde wählen"
+        }
+    ]
+}

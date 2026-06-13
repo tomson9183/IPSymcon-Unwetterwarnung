@@ -1,0 +1,19 @@
+{
+    "translations": {
+        "de": {
+            "Please select…": "Bitte wählen…"
+        },
+        "en": {
+            "Gemeinde (Kartenmitte)": "Municipality (map centre)",
+            "Kartenausschnitt": "Map extent",
+            "Stadt (nah)": "City (close)",
+            "Region": "Region",
+            "Bundesland (weit)": "State (wide)",
+            "Bild-Aktualisierung (Sekunden)": "Image refresh (seconds)",
+            "Quelle: offener DWD-GeoServer (maps.dwd.de) – kein Login nötig. Das Niederschlagsradar wird vom DWD ca. alle 5 Minuten aktualisiert.": "Source: open DWD GeoServer (maps.dwd.de) – no login required. The DWD updates the precipitation radar roughly every 5 minutes.",
+            "Please select…": "Please select…",
+            "Aktiv": "Active",
+            "Nicht konfiguriert – bitte eine Gemeinde wählen": "Not configured – please select a municipality"
+        }
+    }
+}

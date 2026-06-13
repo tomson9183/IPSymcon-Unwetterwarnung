@@ -1,0 +1,16 @@
+{
+    "id": "{8205C645-3B45-4249-9E11-A03F91993C37}",
+    "name": "UnwetterAktion",
+    "type": 3,
+    "vendor": "BBK / NINA",
+    "aliases": [
+        "Unwetter Aktion",
+        "Warnung Reaktion",
+        "Rollladen bei Warnung"
+    ],
+    "url": "https://github.com/tomson9183/IPSymcon-Unwetterwarnung",
+    "parentRequirements": ["{4F06E498-15D9-4D4D-8C07-74AF664ECD8D}"],
+    "childRequirements": [],
+    "implemented": ["{4F06E498-15D9-4D4D-8C07-74AF664ECD8D}"],
+    "prefix": "UWA"
+}

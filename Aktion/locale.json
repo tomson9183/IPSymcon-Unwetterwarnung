@@ -1,0 +1,35 @@
+{
+    "translations": {
+        "de": {
+            "Condition met": "Bedingung erfüllt",
+            "Last trigger": "Letzte Auslösung",
+            "all-clear": "Entwarnung"
+        },
+        "en": {
+            "Diese Instanz reagiert auf die Warnungen ihrer übergeordneten Warnzentrale.": "This instance reacts to the warnings of its parent warning centre.",
+            "Bedingung – wann soll reagiert werden?": "Condition – when to react?",
+            "Kategorie": "Category",
+            "Alle": "All",
+            "Wetter (DWD)": "Weather (DWD)",
+            "Zivilschutz": "Civil protection",
+            "Hochwasser": "Flood",
+            "Polizei": "Police",
+            "Ab Warnstufe": "From warning level",
+            "1 – Vorinformation": "1 – information",
+            "2 – Wetterwarnung": "2 – weather warning",
+            "3 – Markante Warnung": "3 – severe warning",
+            "4 – Extreme Gefahr": "4 – extreme danger",
+            "Stichwort (optional, z. B. GEWITTER, STURM, HOCHWASSER)": "Keyword (optional, e.g. THUNDERSTORM, STORM, FLOOD)",
+            "Reaktion – was soll passieren?": "Reaction – what should happen?",
+            "Aktion bei Warnung (z. B. Rollladen schließen, Push senden, Szene)": "Action on warning (e.g. close shutters, send push, scene)",
+            "Entwarnung (optional)": "All-clear (optional)",
+            "Auch reagieren, wenn alle passenden Warnungen vorbei sind": "Also react when all matching warnings have ended",
+            "Aktion bei Entwarnung (z. B. Rollladen wieder öffnen)": "Action on all-clear (e.g. reopen shutters)",
+            "Condition met": "Condition met",
+            "Last trigger": "Last trigger",
+            "all-clear": "all-clear",
+            "Aktiv": "Active",
+            "Keine Warnzentrale als übergeordnete Instanz verbunden": "No warning centre connected as parent instance"
+        }
+    }
+}

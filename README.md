@@ -1,49 +1,73 @@
 # Unwetter & Gefahren – IP-Symcon Modul
 
-Zeigt **amtliche Unwetter- und Gefahrenwarnungen** für eine frei wählbare Region in
-IP-Symcon an und kann bei bestimmten Gefahrenlagen automatisch **Aktionen auslösen**
-(z. B. Rollläden schließen). Inklusive **Kachel-Visualisierung**.
+Zeigt **amtliche Unwetter- und Gefahrenwarnungen** **gemeinde-genau** in IP-Symcon an,
+löst bei wählbaren Gefahrenlagen **konfigurierbare Aktionen** aus (z. B. Rollläden
+schließen) und bringt das **DWD-Regenradar** als eigene Kachel.
 
 Grundlage ist die offene Warn-API des Bundes (**NINA / `warnung.bund.de`** des
-Bundesamtes für Bevölkerungsschutz und Katastrophenhilfe, BBK). Diese bündelt genau
-die Quellen, die auch in den Apps **NINA**, **KATWARN** und **DWD WarnWetter**
-erscheinen:
+Bundesamtes für Bevölkerungsschutz und Katastrophenhilfe, BBK) und der offene
+**DWD-GeoServer** (`maps.dwd.de`). Die NINA-API bündelt genau die Quellen, die auch
+in den Apps **NINA**, **KATWARN** und **DWD WarnWetter** erscheinen:
 
 | Quelle | Inhalt |
 |---|---|
-| **DWD** | Wetter- und Unwetterwarnungen des Deutschen Wetterdienstes (Sturm, Gewitter, Glätte, Hitze, Starkregen …) |
-| **MoWaS / KATWARN / BIWAPP** | Zivil- und Katastrophenschutz (Gefahrstoffe, Großbrände, Bombenfunde, Sirenenwarnungen …) |
+| **DWD** | Wetter- und Unwetterwarnungen (Sturm, Gewitter, Glätte, Hitze, Starkregen …) |
+| **MoWaS / KATWARN / BIWAPP** | Zivil- und Katastrophenschutz (Gefahrstoffe, Großbrände, Bombenfunde, Sirenen …) |
 | **LHP** | Länderübergreifendes Hochwasserportal |
 | **Polizei** | Polizeiliche Gefahrenmeldungen |
 
-> Kein API-Key nötig. Kompatibel mit **IP-Symcon 7.0 – 9.0**.
+> Kein API-Key, kein Login nötig. Kompatibel mit **IP-Symcon 7.0 – 9.0**.
 
-## Funktionen
+## Aufbau: drei Modultypen, sehr übersichtlich
 
-- **Regionsgenau** über den Amtlichen Regionalschlüssel (ARS) – bequem aus einer
-  Auswahlliste aller ~400 deutschen Land- und Stadtkreise.
-- **Quellen einzeln** aktivierbar (Wetter, Zivilschutz, Hochwasser, Polizei).
-- **Status-Variablen**: Warnung aktiv, höchste Warnstufe (0–4, farbig), Anzahl,
-  je Kategorie ein Status, HTML-Meldungsliste, Zeitpunkt der letzten Aktualisierung.
-- **Kachel-Visualisierung** mit farbiger Warnstufe und Meldungsliste.
-- **Regelbasierte Aktionen**: pro Regel ein Skript ausführen, wenn eine Warnung
-  ab einer bestimmten Stufe / Kategorie / Stichwort neu auftritt.
+```
+🛡️  Warnzentrale            (1×)  – Gemeinde wählen, zeigt ALLE Warnungen + Warn-Kachel
+     └── ⚡ Unwetter Aktion  (n×)  – „was passiert wie“: Bedingung → Reaktion
+🌧️  Regenradar              (1×)  – DWD-Niederschlagsradar als eigene Kachel
+```
+
+- **🛡️ Warnzentrale** – die zentrale Daten-Instanz. Hier wählst du **eine Gemeinde**
+  und siehst **alle** Warnungen (gemeinde-genau gefiltert) als Status-Variablen und in
+  einer **Kachel**.
+- **⚡ Unwetter Aktion** – beliebig viele Instanzen, die **unterhalb** der Warnzentrale
+  hängen. Jede ist genau eine Regel: **Bedingung** (Kategorie + ab Warnstufe + optional
+  Stichwort) → **Reaktion** (frei wählbare Symcon-Aktion). Eigene Namen wie
+  *„Rollläden zu bei Sturm“* oder *„Push bei extremem Gewitter“*.
+- **🌧️ Regenradar** – zeigt das DWD-Niederschlagsradar zentriert auf eine Gemeinde,
+  aktualisiert sich automatisch.
 
 ## Installation
 
 1. In IP-Symcon den **Module-Store** öffnen → **„Modul über URL hinzufügen“**.
-2. URL eintragen: `https://github.com/tomson9183/IPSymcon-Unwetterwarnung`
-3. Eine Instanz **„Unwetterwarnung“** anlegen.
+2. URL: `https://github.com/tomson9183/IPSymcon-Unwetterwarnung`
+3. Instanzen anlegen (siehe unten).
 
 ## Einrichtung
 
-1. **Region** aus der Liste wählen (z. B. *Nordrhein-Westfalen – Kreisfreie Stadt Köln*).
-2. Gewünschte **Warnquellen** an-/abwählen und das **Aktualisierungsintervall**
-   setzen (Standard 600 s = 10 min).
-3. Optional **Regeln** anlegen (siehe unten). Mit **„Jetzt aktualisieren“** sofort
-   abfragen.
+### 1. Warnzentrale
+- Instanz **„Unwetter & Gefahren Warnzentrale“** anlegen.
+- **Gemeinde** aus der Liste wählen (alle ~11.000 deutschen Gemeinden).
+- Optional Quellen, Mindest-Warnstufe und Intervall anpassen.
+- *Gemeinde-genau filtern* (Standard an): nur Warnungen, deren Warngebiet die Gemeinde
+  tatsächlich abdeckt (Punkt-in-Polygon gegen die amtliche Geometrie).
 
-## Status-Variablen
+### 2. Aktionen (optional, beliebig viele)
+- **Unterhalb** der Warnzentrale eine Instanz **„Unwetter Aktion“** anlegen.
+- **Bedingung** wählen: Kategorie, ab Warnstufe (z. B. 4 = extrem), optional Stichwort
+  (z. B. `GEWITTER`).
+- **Reaktion** über die Symcon-Aktionsauswahl festlegen – z. B.:
+  - Rollladen-/Geräte-Variable schalten (Position 100 % = zu)
+  - Szene aktivieren
+  - Push-/WebFront-Benachrichtigung senden
+  - HTTP-Request auslösen
+  - Skript ausführen
+- Optional: **Entwarnung** – eine zweite Aktion, wenn alle passenden Warnungen vorbei
+  sind (z. B. Rollläden wieder öffnen).
+
+### 3. Regenradar (optional)
+- Instanz **„Regenradar“** anlegen, Gemeinde + Kartenausschnitt wählen. Fertig.
+
+## Status-Variablen (Warnzentrale)
 
 | Variable | Typ | Bedeutung |
 |---|---|---|
@@ -53,25 +77,6 @@ erscheinen:
 | `Wetter` / `Zivilschutz` / `Hochwasser` / `Polizei` | Bool | Aktive Warnung je Kategorie |
 | `Meldungen` | HTML | Liste der aktuellen Warnungen |
 | `Letzte Aktualisierung` | Integer | Zeitpunkt des letzten Abrufs |
-
-## Aktionen / Regeln
-
-In der Instanzkonfiguration unter **„Aktionen bei Warnungen (Regeln)“** lassen sich
-Regeln anlegen. Jede Regel führt ein Skript **einmal** aus, sobald eine passende
-Warnung neu auftritt:
-
-| Spalte | Bedeutung |
-|---|---|
-| Aktiv | Regel ein-/ausschalten |
-| Ab Stufe | Mindest-Warnstufe (1–4) |
-| Kategorie | Alle / Wetter / Zivilschutz / Hochwasser / Polizei |
-| Stichwort | optional: nur wenn die Überschrift diesen Text enthält (z. B. „STURM“) |
-| Skript | das auszuführende IP-Symcon-Skript |
-
-Im Skript stehen die Warndaten unter `$_IPS` zur Verfügung
-(`Headline`, `Provider`, `Category`, `Severity`, `SeverityText`, `WarnID`).
-Ein vollständiges Beispiel zum **Rollläden schließen** liegt unter
-[`beispiele/Rollladen_zu.php`](beispiele/Rollladen_zu.php).
 
 ## Warnstufen
 
@@ -83,23 +88,23 @@ Ein vollständiges Beispiel zum **Rollläden schließen** liegt unter
 | 3 | Markante Warnung (Severe) | rot |
 | 4 | Extreme Gefahr (Extreme) | violett |
 
-## Verwendete API
+## Verwendete APIs
 
-| Zweck | Pfad |
+| Zweck | Endpunkt |
 |---|---|
-| Warnübersicht je Region | `GET https://warnung.bund.de/api31/dashboard/{ARS}.json` |
-| Detail zu einer Warnung | `GET https://warnung.bund.de/api31/warnings/{id}.json` |
+| Warnübersicht je Kreis | `GET https://warnung.bund.de/api31/dashboard/{ARS}.json` |
+| Warngeometrie (gemeinde-genau) | `GET https://warnung.bund.de/api31/warnings/{id}.geojson` |
+| DWD-Niederschlagsradar | `https://maps.dwd.de/geoserver/dwd/wms` (Layer `dwd:Niederschlagsradar`) |
 
-Der ARS ist 12-stellig; abgefragt wird kreisgenau (die letzten 7 Stellen sind 0).
-Doku der API: [nina.api.bund.dev](https://nina.api.bund.dev/) ·
-[bundesAPI/nina-api](https://github.com/bundesAPI/nina-api).
+Die Gemeinde-Liste (ARS + Koordinaten) stammt aus dem öffentlichen Datensatz
+*georef-germany-gemeinde*. Doku der NINA-API: [nina.api.bund.dev](https://nina.api.bund.dev/).
 
 ## Hinweise & Grenzen
 
-- Die API liefert Daten **auf Kreisebene** – nicht gemeindescharf.
+- **DWD-WarnWetter-Account:** Es gibt **keine** öffentliche Login-API der WarnWetter-App
+  (der App-Premium-Login ist ein In-App-Kauf für app-interne Karten). Er wird hier auch
+  **nicht benötigt** – Warnungen **und** Radar liefert der DWD/Bund offen und kostenlos.
 - Warnungen erscheinen erst beim nächsten Abruf (Intervall entsprechend wählen).
-- Die API ist ein kostenloser Dienst des Bundes; bei Ausfällen meldet die Instanz
-  Status „Warn-API nicht erreichbar“.
 - Verlasse dich für lebenswichtige Entscheidungen **nicht allein** auf dieses Modul –
   es ergänzt, ersetzt aber nicht die offiziellen Warn-Apps und -Kanäle.
 
@@ -109,5 +114,5 @@ Doku der API: [nina.api.bund.dev](https://nina.api.bund.dev/) ·
 
 ---
 *Dieses Projekt steht in keiner Verbindung zum BBK, DWD oder zu KATWARN. Es nutzt die
-öffentlich bereitgestellte Warn-API des Bundes. „NINA“, „KATWARN“ und „WarnWetter“
+öffentlich bereitgestellten Dienste des Bundes/DWD. „NINA“, „KATWARN“ und „WarnWetter“
 sind Marken der jeweiligen Inhaber.*

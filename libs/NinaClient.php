@@ -58,6 +58,85 @@ trait NinaClient
     }
 
     /**
+     * Lädt die Geometrie (GeoJSON) einer Warnung – für gemeinde-genaue Filterung.
+     */
+    private function NinaGetWarningGeoJson(string $identifier): ?array
+    {
+        $data = $this->NinaHttpGet(self::NINA_BASE . '/warnings/' . rawurlencode($identifier) . '.geojson');
+        if ($data === null) {
+            return null;
+        }
+        $json = json_decode($data, true);
+        return is_array($json) ? $json : null;
+    }
+
+    /**
+     * Prüft, ob ein Punkt (lat/lon) innerhalb der Warn-Geometrie liegt.
+     * Unterstützt Polygon und MultiPolygon. Gibt true zurück, wenn der Punkt in
+     * mindestens einer Fläche liegt.
+     */
+    private function NinaPointInGeoJson(float $lat, float $lon, array $geojson): bool
+    {
+        $features = $geojson['features'] ?? [];
+        foreach ($features as $feature) {
+            $geom = $feature['geometry'] ?? [];
+            $type = $geom['type'] ?? '';
+            $coords = $geom['coordinates'] ?? [];
+            if ($type === 'Polygon') {
+                if ($this->PointInPolygonRings($lat, $lon, $coords)) {
+                    return true;
+                }
+            } elseif ($type === 'MultiPolygon') {
+                foreach ($coords as $polygon) {
+                    if ($this->PointInPolygonRings($lat, $lon, $polygon)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Ein Polygon = äußerer Ring + optionale Löcher. Punkt ist drin, wenn er im
+     * äußeren Ring und in keinem Loch liegt.
+     */
+    private function PointInPolygonRings(float $lat, float $lon, array $rings): bool
+    {
+        if (count($rings) === 0) {
+            return false;
+        }
+        if (!$this->PointInRing($lat, $lon, $rings[0])) {
+            return false;
+        }
+        for ($i = 1; $i < count($rings); $i++) {
+            if ($this->PointInRing($lat, $lon, $rings[$i])) {
+                return false; // im Loch
+            }
+        }
+        return true;
+    }
+
+    /** Ray-Casting für einen einzelnen Ring. Koordinaten als [lon, lat]. */
+    private function PointInRing(float $lat, float $lon, array $ring): bool
+    {
+        $inside = false;
+        $n = count($ring);
+        for ($i = 0, $j = $n - 1; $i < $n; $j = $i++) {
+            $xi = (float) ($ring[$i][0] ?? 0); // lon
+            $yi = (float) ($ring[$i][1] ?? 0); // lat
+            $xj = (float) ($ring[$j][0] ?? 0);
+            $yj = (float) ($ring[$j][1] ?? 0);
+            $intersect = (($yi > $lat) !== ($yj > $lat))
+                && ($lon < ($xj - $xi) * ($lat - $yi) / (($yj - $yi) ?: 1e-12) + $xi);
+            if ($intersect) {
+                $inside = !$inside;
+            }
+        }
+        return $inside;
+    }
+
+    /**
      * Wandelt eine Roh-Dashboard-Meldung in eine flache, einheitliche Struktur um.
      *
      * @return array{id:string,headline:string,provider:string,category:string,severity:int,severityText:string,msgType:string,sent:string}

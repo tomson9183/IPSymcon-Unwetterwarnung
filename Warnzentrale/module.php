@@ -3,40 +3,45 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/NinaClient.php';
+require_once __DIR__ . '/../libs/GemeindeData.php';
 
 /**
- * Unwetter & Gefahren – amtliche Warnungen für IP-Symcon.
+ * Unwetter & Gefahren – Warnzentrale.
  *
- * Fragt kreisgenau die offene Warn-API des Bundes (NINA / warnung.bund.de) ab und
- * vereint die Meldungen aus DWD (Wetter), MoWaS/KATWARN/BIWAPP (Zivilschutz),
- * LHP (Hochwasser) und Polizei. Stellt Status-Variablen und eine Kachel-
- * Visualisierung bereit und kann bei konfigurierbaren Bedingungen Skripte
- * ausführen (z. B. Rollläden schließen).
+ * Holt gemeinde-genau alle amtlichen Warnungen (DWD, MoWaS/KATWARN/BIWAPP,
+ * Hochwasser, Polizei) über die offene NINA-API des Bundes und stellt sie als
+ * Status-Variablen und Kachel-Visualisierung dar. Verteilt die aktiven Warnungen
+ * zusätzlich an untergeordnete „Aktion“-Instanzen (Parent/Child).
  */
-class Unwetterwarnung extends IPSModule
+class UnwetterWarnzentrale extends IPSModule
 {
     use NinaClient;
+    use GemeindeData;
+
+    private const TX = '{4F06E498-15D9-4D4D-8C07-74AF664ECD8D}';
 
     public function Create()
     {
         parent::Create();
 
-        // --- Konfiguration ---
-        $this->RegisterPropertyString('ARS', '');
+        $this->RegisterPropertyString('GemeindeARS', '');
+        $this->RegisterPropertyBoolean('GemeindeGenau', true);
         $this->RegisterPropertyBoolean('SourceWeather', true);
         $this->RegisterPropertyBoolean('SourceCivil', true);
         $this->RegisterPropertyBoolean('SourceFlood', true);
         $this->RegisterPropertyBoolean('SourcePolice', true);
-        $this->RegisterPropertyInteger('MinSeverity', 1); // 1=Minor … 4=Extreme
-        $this->RegisterPropertyInteger('UpdateInterval', 600); // Sekunden
-        $this->RegisterPropertyString('Rules', '[]');
+        $this->RegisterPropertyInteger('MinSeverity', 1);
+        $this->RegisterPropertyInteger('UpdateInterval', 600);
 
-        // --- Profile ---
+        $this->RegisterAttributeString('KreisARS', '');
+        $this->RegisterAttributeString('GemeindeName', '');
+        $this->RegisterAttributeFloat('Lat', 0.0);
+        $this->RegisterAttributeFloat('Lon', 0.0);
+
         $this->RegisterProfiles();
 
-        // --- Status-Variablen ---
         $this->RegisterVariableBoolean('WarnungAktiv', $this->Translate('Warning active'), '~Alert', 10);
-        $this->RegisterVariableInteger('Warnstufe', $this->Translate('Warning level'), 'UWWARN.Stufe', 20);
+        $this->RegisterVariableInteger('Warnstufe', $this->Translate('Warning level'), 'UWZ.Stufe', 20);
         $this->RegisterVariableInteger('Anzahl', $this->Translate('Number of warnings'), '', 30);
         $this->RegisterVariableBoolean('Wetter', $this->Translate('Weather'), '~Alert', 40);
         $this->RegisterVariableBoolean('Zivilschutz', $this->Translate('Civil protection'), '~Alert', 50);
@@ -45,7 +50,7 @@ class Unwetterwarnung extends IPSModule
         $this->RegisterVariableString('Meldungen', $this->Translate('Messages'), '~HTMLBox', 80);
         $this->RegisterVariableInteger('LetzteAktualisierung', $this->Translate('Last update'), '~UnixTimestamp', 90);
 
-        $this->RegisterTimer('Update', 0, 'UWWARN_Update($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('Update', 0, 'UWZ_Update($_IPS[\'TARGET\']);');
     }
 
     public function ApplyChanges()
@@ -53,18 +58,29 @@ class Unwetterwarnung extends IPSModule
         parent::ApplyChanges();
 
         $this->RegisterProfiles();
+        $this->SetVisualizationType(1);
 
-        if ($this->ReadPropertyString('ARS') === '') {
+        $ars = $this->ReadPropertyString('GemeindeARS');
+        if ($ars === '') {
+            $this->WriteAttributeString('KreisARS', '');
             $this->SetStatus(104);
             $this->SetTimerInterval('Update', 0);
             return;
+        }
+
+        // Gemeinde-Stammdaten (Koordinaten, Kreis) einmalig cachen.
+        $g = $this->GemeindeLookup($ars);
+        if ($g !== null) {
+            $this->WriteAttributeString('KreisARS', $this->KreisARSFromGemeinde($ars));
+            $this->WriteAttributeString('GemeindeName', (string) ($g['n'] ?? ''));
+            $this->WriteAttributeFloat('Lat', (float) ($g['y'] ?? 0));
+            $this->WriteAttributeFloat('Lon', (float) ($g['x'] ?? 0));
         }
 
         $interval = $this->ReadPropertyInteger('UpdateInterval');
         $this->SetTimerInterval('Update', $interval > 0 ? $interval * 1000 : 0);
         $this->SetStatus(102);
 
-        // Direkt nach dem Speichern einmal abfragen (verzögert, damit die Instanz bereit ist).
         if (IPS_GetKernelRunlevel() === KR_READY) {
             $this->Update();
         }
@@ -73,25 +89,7 @@ class Unwetterwarnung extends IPSModule
     public function GetConfigurationForm()
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-
-        // Kreis-Auswahlliste dynamisch aus der gebündelten Datendatei aufbauen.
-        $options = [['caption' => $this->Translate('Please select…'), 'value' => '']];
-        $kreise  = json_decode((string) @file_get_contents(__DIR__ . '/../libs/kreise.json'), true);
-        if (is_array($kreise)) {
-            foreach ($kreise as $k) {
-                $options[] = [
-                    'caption' => ($k['land'] ?? '') . ' – ' . ($k['name'] ?? ''),
-                    'value'   => $k['ars'] ?? '',
-                ];
-            }
-        }
-        foreach ($form['elements'] as &$element) {
-            if (($element['name'] ?? '') === 'ARS') {
-                $element['options'] = $options;
-            }
-        }
-        unset($element);
-
+        $form = $this->InjectGemeindeOptions($form, 'GemeindeARS');
         return json_encode($form);
     }
 
@@ -105,17 +103,32 @@ class Unwetterwarnung extends IPSModule
     }
 
     /**
-     * Hauptroutine: Warnungen abrufen, Variablen + Kachel aktualisieren, Regeln auslösen.
+     * Liefert die zuletzt ermittelten aktiven Warnungen als JSON (für Aktion-Childs).
+     */
+    public function GetWarningsJSON(): string
+    {
+        $b = $this->GetBuffer('Warnings');
+        return $b === '' ? '[]' : $b;
+    }
+
+    /**
+     * Hauptroutine: Warnungen abrufen, gemeinde-genau filtern, Variablen + Kachel
+     * setzen, an Aktion-Childs verteilen.
      */
     public function Update(): void
     {
-        $ars = $this->ReadPropertyString('ARS');
+        $ars = $this->ReadPropertyString('GemeindeARS');
         if ($ars === '') {
             $this->SetStatus(104);
             return;
         }
 
-        $raw = $this->NinaGetDashboard($ars);
+        $kreisARS = $this->ReadAttributeString('KreisARS');
+        if ($kreisARS === '') {
+            $kreisARS = $this->KreisARSFromGemeinde($ars);
+        }
+
+        $raw = $this->NinaGetDashboard($kreisARS);
         if ($raw === null) {
             $this->SetStatus(201);
             return;
@@ -124,6 +137,9 @@ class Unwetterwarnung extends IPSModule
 
         $minSeverity = $this->ReadPropertyInteger('MinSeverity');
         $enabled     = $this->EnabledCategories();
+        $gemeinde    = $this->ReadPropertyBoolean('GemeindeGenau');
+        $lat         = $this->ReadAttributeFloat('Lat');
+        $lon         = $this->ReadAttributeFloat('Lon');
 
         $warnings = [];
         foreach ($raw as $item) {
@@ -137,13 +153,19 @@ class Unwetterwarnung extends IPSModule
             if ($w['severity'] < $minSeverity) {
                 continue;
             }
+            // Gemeinde-genau: Punkt-in-Polygon gegen die Geometrie der Warnung.
+            if ($gemeinde && $lat != 0.0 && $lon != 0.0) {
+                $geo = $this->NinaGetWarningGeoJson($w['id']);
+                if ($geo !== null && !$this->NinaPointInGeoJson($lat, $lon, $geo)) {
+                    continue; // Gemeinde nicht betroffen
+                }
+                // Geometrie nicht abrufbar -> sicherheitshalber behalten.
+            }
             $warnings[] = $w;
         }
 
-        // Nach Schwere absteigend sortieren.
         usort($warnings, fn ($a, $b) => $b['severity'] <=> $a['severity']);
 
-        // --- Aggregate ---
         $maxLevel = 0;
         $cats     = ['weather' => false, 'civil' => false, 'flood' => false, 'police' => false];
         foreach ($warnings as $w) {
@@ -161,30 +183,32 @@ class Unwetterwarnung extends IPSModule
         $this->SetValue('Meldungen', $this->BuildHtml($warnings));
         $this->SetValue('LetzteAktualisierung', time());
 
-        // --- Kachel-Visualisierung aktualisieren ---
+        // Kachel
         $tileData = $this->BuildTileData($warnings, $maxLevel);
         $this->SetBuffer('TileData', $tileData);
         $this->UpdateVisualizationValue($tileData);
 
-        // --- Regeln auswerten ---
-        $this->EvaluateRules($warnings);
+        // An Aktion-Childs verteilen
+        $this->SetBuffer('Warnings', json_encode($warnings));
+        $this->SendDataToChildren(json_encode([
+            'DataID'   => self::TX,
+            'Warnings' => $warnings,
+        ]));
     }
 
-    /**
-     * Kachel-Visualisierung (HTML-SDK).
-     */
     public function GetVisualizationTile()
     {
+        if (IPS_GetKernelRunlevel() === KR_READY) {
+            $this->Update();
+        }
         $html = file_get_contents(__DIR__ . '/module.html');
         $data = $this->GetBuffer('TileData');
         if ($data === '') {
             $data = json_encode(['level' => 0, 'count' => 0, 'updated' => '', 'warnings' => []]);
         }
-        // Initialzustand in das HTML einsetzen.
         return str_replace('/*INITIAL_DATA*/null', $data, $html);
     }
 
-    /** Liste der aktivierten Kategorien gemäß Konfiguration. */
     private function EnabledCategories(): array
     {
         $list = [];
@@ -203,81 +227,6 @@ class Unwetterwarnung extends IPSModule
         return $list;
     }
 
-    /**
-     * Wertet die konfigurierten Aktions-Regeln aus und führt passende Skripte
-     * genau einmal pro Warnung aus (solange die Warnung aktiv ist).
-     */
-    private function EvaluateRules(array $warnings): void
-    {
-        $rules = json_decode($this->ReadPropertyString('Rules'), true);
-        if (!is_array($rules) || count($rules) === 0) {
-            return;
-        }
-
-        $fired = json_decode($this->GetBuffer('FiredRules'), true);
-        if (!is_array($fired)) {
-            $fired = [];
-        }
-
-        $activeIds = array_column($warnings, 'id');
-        $newFired  = [];
-
-        foreach ($warnings as $w) {
-            foreach ($rules as $index => $rule) {
-                if (!($rule['Active'] ?? true)) {
-                    continue;
-                }
-                if ($w['severity'] < (int) ($rule['MinSeverity'] ?? 1)) {
-                    continue;
-                }
-                $cat = (string) ($rule['Category'] ?? 'any');
-                if ($cat !== 'any' && $cat !== $w['category']) {
-                    continue;
-                }
-                $keyword = trim((string) ($rule['Keyword'] ?? ''));
-                if ($keyword !== '' && stripos($w['headline'], $keyword) === false) {
-                    continue;
-                }
-                $scriptID = (int) ($rule['ScriptID'] ?? 0);
-
-                $key = $w['id'] . '|' . $index;
-                if (isset($fired[$key])) {
-                    $newFired[$key] = true; // schon ausgelöst, Warnung noch aktiv -> merken
-                    continue;
-                }
-
-                if ($scriptID > 0 && @IPS_ScriptExists($scriptID)) {
-                    @IPS_RunScriptEx($scriptID, [
-                        'SENDER'       => 'Unwetterwarnung',
-                        'INSTANCE'     => $this->InstanceID,
-                        'WarnID'       => $w['id'],
-                        'Headline'     => $w['headline'],
-                        'Provider'     => $w['provider'],
-                        'Category'     => $w['category'],
-                        'Severity'     => $w['severity'],
-                        'SeverityText' => $w['severityText'],
-                    ]);
-                    $this->LogMessage(sprintf(
-                        'Regel %d ausgelöst (%s, Stufe %d): %s',
-                        $index, $w['provider'], $w['severity'], $w['headline']
-                    ), KL_NOTIFY);
-                }
-                $newFired[$key] = true;
-            }
-        }
-
-        // Nur Einträge behalten, deren Warnung noch aktiv ist (Aufräumen).
-        $cleaned = [];
-        foreach ($newFired as $key => $v) {
-            $warnId = explode('|', $key)[0];
-            if (in_array($warnId, $activeIds, true)) {
-                $cleaned[$key] = true;
-            }
-        }
-        $this->SetBuffer('FiredRules', json_encode($cleaned));
-    }
-
-    /** Baut die HTML-Darstellung für die ~HTMLBox-Statusvariable. */
     private function BuildHtml(array $warnings): string
     {
         if (count($warnings) === 0) {
@@ -298,7 +247,6 @@ class Unwetterwarnung extends IPSModule
         return $html;
     }
 
-    /** Erzeugt das JSON für die Kachel-Visualisierung. */
     private function BuildTileData(array $warnings, int $maxLevel): string
     {
         $list = [];
@@ -316,6 +264,7 @@ class Unwetterwarnung extends IPSModule
             'level'     => $maxLevel,
             'levelText' => $this->LevelLabel($maxLevel),
             'count'     => count($warnings),
+            'place'     => $this->ReadAttributeString('GemeindeName'),
             'updated'   => date('d.m.Y H:i'),
             'warnings'  => $list,
         ]);
@@ -337,13 +286,7 @@ class Unwetterwarnung extends IPSModule
 
     private function LevelLabel(int $level): string
     {
-        $map = [
-            0 => 'No warning',
-            1 => 'Information',
-            2 => 'Weather warning',
-            3 => 'Severe warning',
-            4 => 'Extreme danger',
-        ];
+        $map = [0 => 'No warning', 1 => 'Information', 2 => 'Weather warning', 3 => 'Severe warning', 4 => 'Extreme danger'];
         return $this->Translate($map[$level] ?? 'Warning');
     }
 
@@ -352,17 +295,16 @@ class Unwetterwarnung extends IPSModule
         return ['weather' => 'Weather', 'civil' => 'Civil protection', 'flood' => 'Flood', 'police' => 'Police'][$cat] ?? $cat;
     }
 
-    /** Legt die benötigten Variablenprofile an. */
     private function RegisterProfiles(): void
     {
-        if (!IPS_VariableProfileExists('UWWARN.Stufe')) {
-            IPS_CreateVariableProfile('UWWARN.Stufe', VARIABLETYPE_INTEGER);
+        if (!IPS_VariableProfileExists('UWZ.Stufe')) {
+            IPS_CreateVariableProfile('UWZ.Stufe', VARIABLETYPE_INTEGER);
         }
-        IPS_SetVariableProfileValues('UWWARN.Stufe', 0, 4, 1);
-        IPS_SetVariableProfileAssociation('UWWARN.Stufe', 0, $this->Translate('No warning'), 'Ok', 0x2ECC71);
-        IPS_SetVariableProfileAssociation('UWWARN.Stufe', 1, $this->Translate('Information'), 'Information', 0xF1C40F);
-        IPS_SetVariableProfileAssociation('UWWARN.Stufe', 2, $this->Translate('Weather warning'), 'Cloud', 0xE67E22);
-        IPS_SetVariableProfileAssociation('UWWARN.Stufe', 3, $this->Translate('Severe warning'), 'Warning', 0xE74C3C);
-        IPS_SetVariableProfileAssociation('UWWARN.Stufe', 4, $this->Translate('Extreme danger'), 'Alert', 0x8E44AD);
+        IPS_SetVariableProfileValues('UWZ.Stufe', 0, 4, 1);
+        IPS_SetVariableProfileAssociation('UWZ.Stufe', 0, $this->Translate('No warning'), 'Ok', 0x2ECC71);
+        IPS_SetVariableProfileAssociation('UWZ.Stufe', 1, $this->Translate('Information'), 'Information', 0xF1C40F);
+        IPS_SetVariableProfileAssociation('UWZ.Stufe', 2, $this->Translate('Weather warning'), 'Cloud', 0xE67E22);
+        IPS_SetVariableProfileAssociation('UWZ.Stufe', 3, $this->Translate('Severe warning'), 'Warning', 0xE74C3C);
+        IPS_SetVariableProfileAssociation('UWZ.Stufe', 4, $this->Translate('Extreme danger'), 'Alert', 0x8E44AD);
     }
 }

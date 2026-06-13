@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        :root { --txt: #f2f3f5; --sub: #aab0b8; --bg: rgba(255,255,255,0.06); }
+        @media (prefers-color-scheme: light) {
+            :root { --txt: #1c1e22; --sub: #6a7078; --bg: rgba(0,0,0,0.04); }
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; overflow: hidden; }
+        body {
+            text-align: center;
+            font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+            color: var(--txt);
+        }
+        #box { position: relative; width: 100%; overflow: hidden; }
+        #card {
+            position: absolute; left: 50%; top: 0;
+            transform-origin: top center;
+            width: 360px; padding: 10px; text-align: left;
+        }
+        #title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+        #title .t { font-size: 15px; font-weight: 800; }
+        #title .p { font-size: 12px; color: var(--sub); }
+        #map {
+            position: relative; width: 100%; border-radius: 12px; overflow: hidden;
+            background: var(--bg); aspect-ratio: 1 / 0.66;
+        }
+        #img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        /* Gemeinde-Markierung exakt in der Kartenmitte */
+        #marker {
+            position: absolute; left: 50%; top: 50%; width: 14px; height: 14px;
+            transform: translate(-50%, -50%);
+            border: 3px solid #e74c3c; border-radius: 50%;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.8);
+            pointer-events: none;
+        }
+        #foot { font-size: 10px; color: var(--sub); margin-top: 6px; text-align: right; }
+        #hint { padding: 24px 10px; text-align: center; color: var(--sub); }
+        .legend {
+            position: absolute; left: 8px; bottom: 8px;
+            background: rgba(0,0,0,0.45); color: #fff; border-radius: 6px;
+            padding: 4px 7px; font-size: 9px; line-height: 1.5;
+        }
+        .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 3px; vertical-align: -1px; }
+    </style>
+</head>
+<body>
+    <div id="box">
+        <div id="card">
+            <div id="title">
+                <span class="t">🌧️ Regenradar</span>
+                <span class="p" id="place"></span>
+            </div>
+            <div id="map">
+                <img id="img" alt="DWD Niederschlagsradar">
+                <div id="marker"></div>
+                <div class="legend">
+                    <span><i style="background:#a0c8ff"></i>leicht</span>
+                    <span><i style="background:#1f8a1f"></i>mäßig</span>
+                    <span><i style="background:#ffd400"></i>stark</span>
+                    <span><i style="background:#e60000"></i>sehr stark</span>
+                </div>
+            </div>
+            <div id="foot"></div>
+            <div id="hint" style="display:none;">Bitte in der Konfiguration eine Gemeinde wählen.</div>
+        </div>
+    </div>
+
+    <script>
+        var CFG = /*INITIAL_DATA*/null;
+        var timer = null;
+
+        function fit() {
+            var box = document.getElementById('box');
+            var card = document.getElementById('card');
+            var w = window.innerWidth, h = window.innerHeight;
+            var cw = card.offsetWidth, ch = card.offsetHeight;
+            if (!cw || !ch) { return; }
+            var s = Math.min(w / cw, h / ch);
+            card.style.transform = 'translateX(-50%) scale(' + s + ')';
+            box.style.height = (ch * s) + 'px';
+        }
+
+        function refreshImg() {
+            if (!CFG || !CFG.url) { return; }
+            var img = document.getElementById('img');
+            img.onload = fit;
+            img.src = CFG.url + '&t=' + Date.now();
+            document.getElementById('foot').textContent =
+                'DWD · Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function start(cfg) {
+            if (cfg) { CFG = cfg; }
+            if (typeof CFG === 'string') { try { CFG = JSON.parse(CFG); } catch (e) {} }
+            var hasUrl = CFG && CFG.url;
+            document.getElementById('map').style.display = hasUrl ? 'block' : 'none';
+            document.getElementById('hint').style.display = hasUrl ? 'none' : 'block';
+            document.getElementById('place').textContent = (CFG && CFG.place) ? CFG.place : '';
+            if (hasUrl) {
+                refreshImg();
+                if (timer) { clearInterval(timer); }
+                timer = setInterval(refreshImg, (CFG.refresh || 300) * 1000);
+            }
+            fit();
+        }
+
+        function handleMessage(data) { start(data); }
+
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', function () { start(null); setTimeout(fit, 80); setTimeout(fit, 300); });
+    </script>
+</body>
+</html>

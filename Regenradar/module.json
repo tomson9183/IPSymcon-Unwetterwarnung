@@ -1,0 +1,16 @@
+{
+    "id": "{1AA2D3ED-A41E-453D-AC3E-0039D94EBA7E}",
+    "name": "UnwetterRegenradar",
+    "type": 3,
+    "vendor": "DWD",
+    "aliases": [
+        "Regenradar",
+        "DWD Niederschlagsradar",
+        "Regenradar Kachel"
+    ],
+    "url": "https://github.com/tomson9183/IPSymcon-Unwetterwarnung",
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "UWR"
+}

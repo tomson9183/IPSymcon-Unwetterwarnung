@@ -1,0 +1,84 @@
+{
+    "elements": [
+        {
+            "type": "Label",
+            "caption": "Diese Instanz reagiert auf die Warnungen ihrer übergeordneten Warnzentrale."
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Bedingung – wann soll reagiert werden?",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Select",
+                    "name": "Category",
+                    "caption": "Kategorie",
+                    "options": [
+                        { "caption": "Alle", "value": "any" },
+                        { "caption": "Wetter (DWD)", "value": "weather" },
+                        { "caption": "Zivilschutz", "value": "civil" },
+                        { "caption": "Hochwasser", "value": "flood" },
+                        { "caption": "Polizei", "value": "police" }
+                    ]
+                },
+                {
+                    "type": "Select",
+                    "name": "MinSeverity",
+                    "caption": "Ab Warnstufe",
+                    "options": [
+                        { "caption": "1 – Vorinformation", "value": 1 },
+                        { "caption": "2 – Wetterwarnung", "value": 2 },
+                        { "caption": "3 – Markante Warnung", "value": 3 },
+                        { "caption": "4 – Extreme Gefahr", "value": 4 }
+                    ]
+                },
+                {
+                    "type": "ValidationTextBox",
+                    "name": "Keyword",
+                    "caption": "Stichwort (optional, z. B. GEWITTER, STURM, HOCHWASSER)"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Reaktion – was soll passieren?",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "SelectAction",
+                    "name": "OnAlert",
+                    "caption": "Aktion bei Warnung (z. B. Rollladen schließen, Push senden, Szene)"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Entwarnung (optional)",
+            "items": [
+                {
+                    "type": "CheckBox",
+                    "name": "UseOnClear",
+                    "caption": "Auch reagieren, wenn alle passenden Warnungen vorbei sind"
+                },
+                {
+                    "type": "SelectAction",
+                    "name": "OnClear",
+                    "caption": "Aktion bei Entwarnung (z. B. Rollladen wieder öffnen)"
+                }
+            ]
+        }
+    ],
+    "actions": [],
+    "status": [
+        {
+            "code": 102,
+            "icon": "active",
+            "caption": "Aktiv"
+        },
+        {
+            "code": 104,
+            "icon": "inactive",
+            "caption": "Keine Warnzentrale als übergeordnete Instanz verbunden"
+        }
+    ]
+}

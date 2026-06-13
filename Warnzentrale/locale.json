@@ -20,7 +20,8 @@
             "Warning": "Warnung"
         },
         "en": {
-            "Region (Land-/Stadtkreis)": "Region (district)",
+            "Gemeinde": "Municipality",
+            "Gemeinde-genau filtern (Punkt-in-Polygon gegen die Warngebiete)": "Filter by municipality (point-in-polygon against the warning areas)",
             "Warnquellen": "Warning sources",
             "DWD – Wetter / Unwetter": "DWD – weather / severe weather",
             "Zivilschutz (MoWaS / KATWARN / BIWAPP)": "Civil protection (MoWaS / KATWARN / BIWAPP)",
@@ -33,29 +34,11 @@
             "Stufe 3 – Markante Warnung": "Level 3 – severe warning",
             "Stufe 4 – Extreme Gefahr": "Level 4 – extreme danger",
             "Aktualisierungsintervall (Sekunden, 0 = aus)": "Update interval (seconds, 0 = off)",
-            "Aktionen bei Warnungen (Regeln)": "Actions on warnings (rules)",
-            "Pro Regel wird das gewählte Skript einmal ausgeführt, sobald eine passende Warnung neu auftritt. Im Skript stehen die Warndaten unter $_IPS (Headline, Provider, Category, Severity).": "Each rule runs the selected script once when a matching warning newly appears. The warning data is available in the script via $_IPS (Headline, Provider, Category, Severity).",
-            "Regeln": "Rules",
-            "Aktiv": "Active",
-            "Ab Stufe": "From level",
-            "1 – Vorinformation": "1 – information",
-            "2 – Wetterwarnung": "2 – weather warning",
-            "3 – Markante Warnung": "3 – severe warning",
-            "4 – Extreme Gefahr": "4 – extreme danger",
-            "Kategorie": "Category",
-            "Alle": "All",
-            "Wetter (DWD)": "Weather (DWD)",
-            "Zivilschutz": "Civil protection",
-            "Hochwasser": "Flood",
-            "Stichwort (optional)": "Keyword (optional)",
-            "Skript": "Script",
+            "Tipp: Für Aktionen (z. B. Rollläden schließen) lege unter dieser Warnzentrale eine oder mehrere „Unwetter Aktion“-Instanzen an.": "Tip: For actions (e.g. closing shutters), create one or more \"Unwetter Aktion\" instances under this warning centre.",
             "Jetzt aktualisieren": "Update now",
-            "Aktiv (Status)": "Active",
-            "Nicht konfiguriert – bitte eine Region wählen": "Not configured – please select a region",
-            "Warn-API nicht erreichbar": "Warning API unreachable",
-            "Warnung aktiv": "Warning active",
-            "Warnstufe": "Warning level",
-            "Anzahl Warnungen": "Number of warnings"
+            "Aktiv": "Active",
+            "Nicht konfiguriert – bitte eine Gemeinde wählen": "Not configured – please select a municipality",
+            "Warn-API nicht erreichbar": "Warning API unreachable"
         }
     }
 }

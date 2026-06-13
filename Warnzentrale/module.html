@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        :root {
+            --txt: #f2f3f5;
+            --sub: #aab0b8;
+            --card: rgba(255, 255, 255, 0.07);
+        }
+        @media (prefers-color-scheme: light) {
+            :root { --txt: #1c1e22; --sub: #6a7078; --card: rgba(0, 0, 0, 0.05); }
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; overflow: hidden; }
+        body {
+            text-align: center;
+            font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+            color: var(--txt);
+        }
+        /* fixe Box, Inhalt bleibt im Fluss -> Fit() skaliert passgenau (Meross-Konvention) */
+        #box { position: relative; width: 100%; overflow: hidden; }
+        #card {
+            position: absolute; left: 50%; top: 0;
+            transform-origin: top center;
+            width: 320px;
+            padding: 10px;
+            text-align: left;
+        }
+        #header {
+            display: flex; align-items: center; gap: 12px;
+            border-radius: 12px; padding: 12px 14px; color: #fff;
+        }
+        #icon { font-size: 30px; line-height: 1; }
+        #headtext { flex: 1; min-width: 0; }
+        #level { font-size: 16px; font-weight: 800; }
+        #sub { font-size: 12px; opacity: 0.92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #count { font-size: 24px; font-weight: 800; min-width: 34px; text-align: center; }
+        #list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .c {
+            background: var(--card); border-left: 5px solid #888;
+            border-radius: 8px; padding: 8px 10px;
+        }
+        .c .hl { font-weight: 600; font-size: 14px; }
+        .c .meta { font-size: 11px; color: var(--sub); margin-top: 2px; }
+        .badge {
+            display: inline-block; padding: 1px 7px; border-radius: 10px;
+            font-size: 10px; font-weight: 700; color: #fff; margin-right: 6px;
+        }
+        #empty { text-align: center; padding: 24px 10px; color: #2ecc71; font-weight: 700; }
+        #updated { text-align: right; font-size: 10px; color: var(--sub); margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div id="box">
+        <div id="card">
+            <div id="header">
+                <div id="icon">🟢</div>
+                <div id="headtext">
+                    <div id="level">–</div>
+                    <div id="sub"></div>
+                </div>
+                <div id="count">0</div>
+            </div>
+            <div id="list"></div>
+            <div id="empty" style="display:none;">Keine Warnungen – alles ruhig.</div>
+            <div id="updated"></div>
+        </div>
+    </div>
+
+    <script>
+        var COLORS = { 0: '#2ecc71', 1: '#f1c40f', 2: '#e67e22', 3: '#e74c3c', 4: '#8e44ad' };
+        var LEVEL_ICON = { 0: '🟢', 1: '🟡', 2: '🟠', 3: '🔴', 4: '🟣' };
+        var CAT_ICON = { weather: '🌩️', civil: '⚠️', flood: '🌊', police: '🚓' };
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // Skaliert die feste Designkarte passgenau in die Kachel (kein Scrollen).
+        function fit() {
+            var box = document.getElementById('box');
+            var card = document.getElementById('card');
+            var w = window.innerWidth, h = window.innerHeight;
+            var cw = card.offsetWidth, ch = card.offsetHeight;
+            if (!cw || !ch) { return; }
+            var s = Math.min(w / cw, h / ch);
+            card.style.transform = 'translateX(-50%) scale(' + s + ')';
+            box.style.height = (ch * s) + 'px';
+        }
+
+        function render(data) {
+            if (!data) { return; }
+            if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { return; } }
+            var level = data.level || 0;
+            var color = COLORS[level] || '#888';
+
+            document.getElementById('header').style.background = color;
+            document.getElementById('icon').textContent = LEVEL_ICON[level] || '⚠️';
+            document.getElementById('level').textContent = data.levelText || '';
+            document.getElementById('count').textContent = data.count || 0;
+            var place = data.place ? (data.place + ' · ') : '';
+            document.getElementById('sub').textContent = place +
+                ((data.count > 0) ? (data.count + ' aktive Warnung(en)') : 'keine aktiven Warnungen');
+
+            var list = document.getElementById('list');
+            list.innerHTML = '';
+            var warnings = data.warnings || [];
+            document.getElementById('empty').style.display = warnings.length ? 'none' : 'block';
+
+            warnings.forEach(function (w) {
+                var c = COLORS[w.severity] || '#888';
+                var card = document.createElement('div');
+                card.className = 'c';
+                card.style.borderLeftColor = c;
+                var badge = '<span class="badge" style="background:' + c + '">'
+                    + (CAT_ICON[w.category] || '') + ' ' + (w.levelText || '') + '</span>';
+                card.innerHTML = '<div class="hl">' + escapeHtml(w.headline) + '</div>'
+                    + '<div class="meta">' + badge + escapeHtml(w.provider)
+                    + (w.time ? ' · ' + escapeHtml(w.time) : '') + '</div>';
+                list.appendChild(card);
+            });
+
+            document.getElementById('updated').textContent = data.updated ? ('Stand: ' + data.updated) : '';
+            fit();
+        }
+
+        // Von IP-Symcon bei UpdateVisualizationValue() aufgerufen.
+        function handleMessage(data) { render(data); }
+
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', function () { fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
+
+        render(/*INITIAL_DATA*/null);
+    </script>
+</body>
+</html>

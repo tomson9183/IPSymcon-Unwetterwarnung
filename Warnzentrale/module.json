@@ -1,10 +1,10 @@
 {
     "id": "{A4A4B36B-D66C-44D7-AEC3-11AB352331F5}",
-    "name": "Unwetterwarnung",
+    "name": "UnwetterWarnzentrale",
     "type": 3,
     "vendor": "BBK / NINA",
     "aliases": [
-        "Unwetter & Gefahren",
+        "Unwetter & Gefahren Warnzentrale",
         "NINA Warnungen",
         "Katwarn",
         "MoWaS",
@@ -13,7 +13,7 @@
     ],
     "url": "https://github.com/tomson9183/IPSymcon-Unwetterwarnung",
     "parentRequirements": [],
-    "childRequirements": [],
-    "implemented": [],
-    "prefix": "UWWARN"
+    "childRequirements": ["{4F06E498-15D9-4D4D-8C07-74AF664ECD8D}"],
+    "implemented": ["{4F06E498-15D9-4D4D-8C07-74AF664ECD8D}"],
+    "prefix": "UWZ"
 }

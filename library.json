@@ -1,0 +1,12 @@
+{
+    "id": "{716B47ED-EBFE-42C5-8B81-82F4D0E4B2DA}",
+    "name": "Unwetterwarnung",
+    "author": "tomson9183",
+    "url": "https://github.com/tomson9183/IPSymcon-Unwetterwarnung",
+    "compatibility": {
+        "version": "7.0"
+    },
+    "version": "1.0",
+    "build": 1,
+    "date": 1781356028
+}

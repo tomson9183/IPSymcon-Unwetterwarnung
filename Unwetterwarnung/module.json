@@ -1,0 +1,19 @@
+{
+    "id": "{A4A4B36B-D66C-44D7-AEC3-11AB352331F5}",
+    "name": "Unwetterwarnung",
+    "type": 3,
+    "vendor": "BBK / NINA",
+    "aliases": [
+        "Unwetter & Gefahren",
+        "NINA Warnungen",
+        "Katwarn",
+        "MoWaS",
+        "DWD Unwetterwarnung",
+        "Hochwasserwarnung"
+    ],
+    "url": "https://github.com/tomson9183/IPSymcon-Unwetterwarnung",
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "UWWARN"
+}

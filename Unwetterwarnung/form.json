@@ -1,0 +1,157 @@
+{
+    "elements": [
+        {
+            "type": "Select",
+            "name": "ARS",
+            "caption": "Region (Land-/Stadtkreis)",
+            "options": []
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Warnquellen",
+            "items": [
+                {
+                    "type": "CheckBox",
+                    "name": "SourceWeather",
+                    "caption": "DWD – Wetter / Unwetter"
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "SourceCivil",
+                    "caption": "Zivilschutz (MoWaS / KATWARN / BIWAPP)"
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "SourceFlood",
+                    "caption": "Hochwasser (Länderübergreifendes Hochwasserportal)"
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "SourcePolice",
+                    "caption": "Polizei"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Anzeige & Abruf",
+            "items": [
+                {
+                    "type": "Select",
+                    "name": "MinSeverity",
+                    "caption": "Ab Warnstufe anzeigen",
+                    "options": [
+                        { "caption": "Stufe 1 – Vorinformation (alle)", "value": 1 },
+                        { "caption": "Stufe 2 – Wetterwarnung", "value": 2 },
+                        { "caption": "Stufe 3 – Markante Warnung", "value": 3 },
+                        { "caption": "Stufe 4 – Extreme Gefahr", "value": 4 }
+                    ]
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "UpdateInterval",
+                    "caption": "Aktualisierungsintervall (Sekunden, 0 = aus)",
+                    "minimum": 0,
+                    "maximum": 86400,
+                    "suffix": "s"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Aktionen bei Warnungen (Regeln)",
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Pro Regel wird das gewählte Skript einmal ausgeführt, sobald eine passende Warnung neu auftritt. Im Skript stehen die Warndaten unter $_IPS (Headline, Provider, Category, Severity)."
+                },
+                {
+                    "type": "List",
+                    "name": "Rules",
+                    "caption": "Regeln",
+                    "rowCount": 5,
+                    "add": true,
+                    "delete": true,
+                    "columns": [
+                        {
+                            "caption": "Aktiv",
+                            "name": "Active",
+                            "width": "60px",
+                            "add": true,
+                            "edit": { "type": "CheckBox" }
+                        },
+                        {
+                            "caption": "Ab Stufe",
+                            "name": "MinSeverity",
+                            "width": "150px",
+                            "add": 3,
+                            "edit": {
+                                "type": "Select",
+                                "options": [
+                                    { "caption": "1 – Vorinformation", "value": 1 },
+                                    { "caption": "2 – Wetterwarnung", "value": 2 },
+                                    { "caption": "3 – Markante Warnung", "value": 3 },
+                                    { "caption": "4 – Extreme Gefahr", "value": 4 }
+                                ]
+                            }
+                        },
+                        {
+                            "caption": "Kategorie",
+                            "name": "Category",
+                            "width": "160px",
+                            "add": "any",
+                            "edit": {
+                                "type": "Select",
+                                "options": [
+                                    { "caption": "Alle", "value": "any" },
+                                    { "caption": "Wetter (DWD)", "value": "weather" },
+                                    { "caption": "Zivilschutz", "value": "civil" },
+                                    { "caption": "Hochwasser", "value": "flood" },
+                                    { "caption": "Polizei", "value": "police" }
+                                ]
+                            }
+                        },
+                        {
+                            "caption": "Stichwort (optional)",
+                            "name": "Keyword",
+                            "width": "180px",
+                            "add": "",
+                            "edit": { "type": "ValidationTextBox" }
+                        },
+                        {
+                            "caption": "Skript",
+                            "name": "ScriptID",
+                            "width": "250px",
+                            "add": 0,
+                            "edit": { "type": "SelectScript" }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Jetzt aktualisieren",
+            "onClick": "UWWARN_Update($id);"
+        }
+    ],
+    "status": [
+        {
+            "code": 102,
+            "icon": "active",
+            "caption": "Aktiv"
+        },
+        {
+            "code": 104,
+            "icon": "inactive",
+            "caption": "Nicht konfiguriert – bitte eine Region wählen"
+        },
+        {
+            "code": 201,
+            "icon": "error",
+            "caption": "Warn-API nicht erreichbar"
+        }
+    ]
+}

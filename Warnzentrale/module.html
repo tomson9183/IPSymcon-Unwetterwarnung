@@ -26,6 +26,8 @@
             width: 320px;
             padding: 10px;
             text-align: left;
+            will-change: transform;
+            backface-visibility: hidden;
         }
         #header {
             display: flex; align-items: center; gap: 12px;
@@ -79,14 +81,19 @@
         }
 
         // Skaliert die feste Designkarte passgenau in die Kachel (kein Scrollen, kein Flackern).
-        function fit() {
+        var lastW = -1, lastCH = -1, rafPending = false;
+        function doFit() {
+            rafPending = false;
             var card = document.getElementById('card');
             var w = window.innerWidth, h = window.innerHeight;
             var cw = card.offsetWidth, ch = card.offsetHeight;
             if (!cw || !ch) { return; }
+            if (w === lastW && ch === lastCH) { return; } // reine Viewport-Hoehe (Hover) ignorieren
+            lastW = w; lastCH = ch;
             var s = Math.min(w / cw, h / ch);
             card.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
         }
+        function fit() { if (rafPending) { return; } rafPending = true; requestAnimationFrame(doFit); }
 
         function render(data) {
             if (!data) { return; }
@@ -128,6 +135,7 @@
         function handleMessage(data) { render(data); }
 
         window.addEventListener('resize', fit);
+        if (window.ResizeObserver) { new ResizeObserver(fit).observe(document.documentElement); }
         window.addEventListener('load', function () { fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
 
         render(/*INITIAL_DATA*/null);

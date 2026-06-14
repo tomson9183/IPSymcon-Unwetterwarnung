@@ -58,15 +58,17 @@
 
         function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-        var lastS = -1, rafPending = false;
+        var lastW = -1, lastCH = -1, rafPending = false;
         function doFit() {
             rafPending = false;
             var card=document.getElementById('card');
             var w=window.innerWidth, h=window.innerHeight, cw=card.offsetWidth, ch=card.offsetHeight;
             if(!cw||!ch) return;
+            // Nur bei Breiten- oder Inhaltsaenderung neu skalieren. Reine Viewport-HOEHEN-
+            // Aenderungen (z. B. Hover-Overlay der Kachel) ignorieren -> kein Flackern.
+            if (w === lastW && ch === lastCH) { return; }
+            lastW = w; lastCH = ch;
             var s=Math.min(w/cw, h/ch);
-            if (Math.abs(s - lastS) < 0.002) { return; } // unveraendert -> nicht neu zeichnen (kein Flackern)
-            lastS = s;
             card.style.transform='translate(-50%,-50%) scale('+s+')';
         }
         function fit() { if (rafPending) { return; } rafPending = true; requestAnimationFrame(doFit); }

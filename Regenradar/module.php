@@ -85,7 +85,8 @@ class UnwetterRegenradar extends IPSModule
     }
 
     /**
-     * Lädt das aktuelle Radarbild vom DWD und stellt es der Kachel als Data-URI bereit.
+     * Lädt das aktuelle Radarbild vom DWD (serverseitig) und schiebt es in die Kachel.
+     * Schlägt der Server-Abruf fehl, nutzt die Kachel die externe URL als Fallback.
      */
     public function Refresh(): void
     {
@@ -94,31 +95,53 @@ class UnwetterRegenradar extends IPSModule
             return;
         }
         $png = $this->HttpGetBinary($url);
-        $payload = [
-            'img'     => $png !== null ? ('data:image/png;base64,' . base64_encode($png)) : '',
-            'place'   => $this->ReadAttributeString('GemeindeName'),
-            'updated' => date('H:i'),
-        ];
-        $json = json_encode($payload);
-        $this->SetBuffer('Tile', $json);
-        $this->UpdateVisualizationValue($json);
+        if ($png !== null) {
+            $this->SetBuffer('Img', 'data:image/png;base64,' . base64_encode($png));
+            $this->SetBuffer('ImgTime', date('H:i'));
+        }
+        $this->UpdateVisualizationValue($this->BuildTilePayload());
+    }
+
+    /** Knopf „Radar jetzt laden / testen“ mit Klartext-Rückmeldung. */
+    public function RefreshTest(): void
+    {
+        if ($this->ReadPropertyString('GemeindeARS') === '') {
+            echo $this->Translate('Please select a municipality first.');
+            return;
+        }
+        $url = $this->BuildRadarURL();
+        $png = $this->HttpGetBinary($url);
+        if ($png !== null) {
+            $this->SetBuffer('Img', 'data:image/png;base64,' . base64_encode($png));
+            $this->SetBuffer('ImgTime', date('H:i'));
+            $this->UpdateVisualizationValue($this->BuildTilePayload());
+            echo sprintf($this->Translate('OK – radar image loaded (%d KB).'), (int) round(strlen($png) / 1024));
+        } else {
+            $this->UpdateVisualizationValue($this->BuildTilePayload());
+            echo $this->Translate('Server could not load the image — the tile falls back to the direct DWD URL. Test URL:') . "\n" . $url;
+        }
+    }
+
+    private function BuildTilePayload(): string
+    {
+        return json_encode([
+            'img'        => $this->GetBuffer('Img'),
+            'url'        => $this->BuildRadarURL(),
+            'place'      => $this->ReadAttributeString('GemeindeName'),
+            'configured' => $this->ReadPropertyString('GemeindeARS') !== '',
+            'updated'    => $this->GetBuffer('ImgTime'),
+        ]);
     }
 
     public function GetVisualizationTile()
     {
         $html = file_get_contents(__DIR__ . '/module.html');
-        $data = $this->GetBuffer('Tile');
-        if ($data === '') {
-            // Beim ersten Öffnen sofort ein Bild laden.
-            if (IPS_GetKernelRunlevel() === KR_READY && $this->ReadPropertyString('GemeindeARS') !== '') {
-                $this->Refresh();
-                $data = $this->GetBuffer('Tile');
-            }
-            if ($data === '') {
-                $data = json_encode(['img' => '', 'place' => $this->ReadAttributeString('GemeindeName'), 'updated' => '']);
-            }
+        // Beim ersten Öffnen serverseitig ein Bild versuchen (Fallback-URL ist ohnehin dabei).
+        if ($this->GetBuffer('Img') === '' && IPS_GetKernelRunlevel() === KR_READY
+            && $this->ReadPropertyString('GemeindeARS') !== '') {
+            $this->Refresh();
         }
-        return str_replace('/*INITIAL_DATA*/null', $data, $html);
+        return str_replace('/*INITIAL_DATA*/null', $this->BuildTilePayload(), $html);
     }
 
     /**

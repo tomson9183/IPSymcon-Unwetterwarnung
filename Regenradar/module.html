@@ -63,7 +63,7 @@
                 </div>
             </div>
             <div id="foot"></div>
-            <div id="hint" style="display:none;">Bitte in der Konfiguration eine Gemeinde wählen.</div>
+            <div id="hint" style="display:none;"></div>
         </div>
     </div>
 
@@ -83,15 +83,26 @@
             if (!data) { return; }
             if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { return; } }
 
-            var hasImg = data.img && data.img.length > 10;
-            document.getElementById('map').style.display = hasImg ? 'block' : 'none';
-            document.getElementById('hint').style.display = hasImg ? 'none' : 'block';
-            document.getElementById('place').textContent = data.place || '';
+            // Bevorzugt das serverseitig geladene Bild, sonst die externe DWD-URL.
+            var src = (data.img && data.img.length > 10) ? data.img : (data.url || '');
+            var show = data.configured && src;
 
-            if (hasImg) {
+            document.getElementById('place').textContent = data.place || '';
+            document.getElementById('map').style.display = show ? 'block' : 'none';
+            var hint = document.getElementById('hint');
+            hint.style.display = show ? 'none' : 'block';
+            hint.textContent = !data.configured
+                ? 'Bitte in der Konfiguration eine Gemeinde wählen.'
+                : 'Radarbild wird geladen … (falls dauerhaft leer: Konfig → „Radar jetzt laden / testen“).';
+
+            if (show) {
                 var img = document.getElementById('img');
                 img.onload = fit;
-                img.src = data.img;
+                img.onerror = function () {
+                    // Falls die data-URI scheitert, externe URL versuchen.
+                    if (data.url && img.src !== data.url) { img.src = data.url; }
+                };
+                img.src = src;
                 document.getElementById('foot').textContent =
                     data.updated ? ('DWD · Stand ' + data.updated) : 'DWD';
             }

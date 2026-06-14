@@ -46,7 +46,13 @@
             "caption": "Quelle: offener DWD-GeoServer (maps.dwd.de) – kein Login nötig. Das Niederschlagsradar wird vom DWD ca. alle 5 Minuten aktualisiert."
         }
     ],
-    "actions": [],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "🔄 Radar jetzt laden / testen",
+            "onClick": "UWR_RefreshTest($id);"
+        }
+    ],
     "status": [
         {
             "code": 102,

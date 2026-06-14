@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        :root { --txt:#f2f3f5; --sub:#aab0b8; --card:rgba(255,255,255,0.07); --line:rgba(255,255,255,0.12); }
+        @media (prefers-color-scheme: light) {
+            :root { --txt:#1c1e22; --sub:#6a7078; --card:rgba(0,0,0,0.05); --line:rgba(0,0,0,0.12); }
+        }
+        * { box-sizing: border-box; }
+        html, body { margin:0; padding:0; overflow:hidden; }
+        body { text-align:center; font-family:-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--txt); }
+        #box { position:relative; width:100%; overflow:hidden; }
+        #card { position:absolute; left:50%; top:0; transform-origin:top center; width:330px; padding:12px; text-align:left; }
+        #head { display:flex; align-items:center; gap:10px; }
+        #head .t { font-size:16px; font-weight:800; flex:1; }
+        #dot { width:14px; height:14px; border-radius:50%; background:#2ecc71; box-shadow:0 0 8px rgba(0,0,0,.25); }
+        #status { font-size:12px; color:var(--sub); margin:6px 0 10px; }
+        #rules { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+        .r { background:var(--card); border-radius:8px; padding:7px 9px; font-size:12px; }
+        .r .a { font-weight:700; }
+        .r .b { color:var(--sub); font-size:11px; margin-top:1px; }
+        .sev { display:inline-block; min-width:18px; text-align:center; border-radius:6px; color:#fff; font-weight:700; padding:0 5px; margin-right:6px; font-size:11px; }
+        #empty { color:var(--sub); font-size:12px; padding:8px 0 12px; }
+        .btns { display:flex; gap:10px; }
+        button {
+            flex:1; border:0; border-radius:10px; padding:12px 8px; cursor:pointer;
+            font-size:13px; font-weight:800; color:#fff; transition:transform .05s, filter .15s;
+        }
+        button:active { transform:scale(0.97); }
+        .warn { background:linear-gradient(135deg,#e67e22,#e74c3c); }
+        .clear { background:linear-gradient(135deg,#27ae60,#2ecc71); }
+        button:hover { filter:brightness(1.08); }
+        #toast { font-size:11px; color:var(--sub); margin-top:8px; min-height:14px; text-align:center; }
+    </style>
+</head>
+<body>
+    <div id="box">
+        <div id="card">
+            <div id="head">
+                <span class="t">⚡ Unwetter Aktionen</span>
+                <span id="dot"></span>
+            </div>
+            <div id="status"></div>
+            <div id="rules"></div>
+            <div id="empty" style="display:none;">Noch keine Regeln angelegt (Konfiguration).</div>
+            <div class="btns">
+                <button class="warn" onclick="trigger('Test', this)">🔔 Warnung testen</button>
+                <button class="clear" onclick="trigger('TestClear', this)">✅ Entwarnung testen</button>
+            </div>
+            <div id="toast"></div>
+        </div>
+    </div>
+
+    <script>
+        var SEVCOL = {1:'#f1c40f',2:'#e67e22',3:'#e74c3c',4:'#8e44ad'};
+
+        function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+        function fit() {
+            var box=document.getElementById('box'), card=document.getElementById('card');
+            var w=window.innerWidth, h=window.innerHeight, cw=card.offsetWidth, ch=card.offsetHeight;
+            if(!cw||!ch) return;
+            var s=Math.min(w/cw, h/ch);
+            card.style.transform='translateX(-50%) scale('+s+')';
+            box.style.height=(ch*s)+'px';
+        }
+
+        function trigger(ident, btn) {
+            document.getElementById('toast').textContent = (ident==='Test' ? '🔔 Warnung simuliert …' : '✅ Entwarnung simuliert …');
+            if (typeof requestAction === 'function') { requestAction(ident, true); }
+        }
+
+        function render(data) {
+            if(!data) return;
+            if(typeof data==='string'){ try{data=JSON.parse(data);}catch(e){return;} }
+
+            document.getElementById('dot').style.background = data.condition ? '#e74c3c' : '#2ecc71';
+            document.getElementById('status').textContent =
+                (data.condition ? '● Bedingung aktuell erfüllt' : '○ bereit, keine aktive Warnung')
+                + (data.last ? ('  ·  ' + data.last) : '');
+
+            var rules = data.rules || [];
+            var box = document.getElementById('rules');
+            box.innerHTML = '';
+            document.getElementById('empty').style.display = rules.length ? 'none' : 'block';
+            rules.forEach(function(r){
+                var d=document.createElement('div'); d.className='r';
+                var sev='<span class="sev" style="background:'+(SEVCOL[r.sev]||'#888')+'">'+r.sev+'</span>';
+                var react = r.target ? (esc(r.target)+' → '+esc(r.on)+(r.off!==''?(' / '+esc(r.off)):'')) : 'Skript / —';
+                d.innerHTML='<div class="a">'+sev+esc(r.cat)+'</div><div class="b">'+react+'</div>';
+                box.appendChild(d);
+            });
+            fit();
+        }
+
+        function handleMessage(data){ render(data); }
+
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', function(){ fit(); setTimeout(fit,80); setTimeout(fit,300); });
+
+        render(/*INITIAL_DATA*/null);
+    </script>
+</body>
+</html>

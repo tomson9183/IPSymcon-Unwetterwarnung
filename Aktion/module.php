@@ -33,6 +33,8 @@ class UnwetterAktion extends IPSModule
     {
         parent::ApplyChanges();
 
+        $this->SetVisualizationType(1);
+
         // Alte Nachrichten-Registrierungen entfernen.
         foreach ($this->GetMessageList() as $senderID => $messages) {
             foreach ($messages as $message) {
@@ -86,7 +88,63 @@ class UnwetterAktion extends IPSModule
 
     public function RequestAction($Ident, $Value)
     {
+        switch ($Ident) {
+            case 'Test':
+                $this->Test();
+                return;
+            case 'TestClear':
+                $this->TestClear();
+                return;
+        }
         throw new Exception('Invalid Ident: ' . $Ident);
+    }
+
+    public function GetVisualizationTile()
+    {
+        $html = file_get_contents(__DIR__ . '/module.html');
+        return str_replace('/*INITIAL_DATA*/null', $this->BuildTilePayload(), $html);
+    }
+
+    /** Aktualisiert die Kachel (Status/Letzte Auslösung/Regelübersicht). */
+    private function PushVisu(): void
+    {
+        $this->UpdateVisualizationValue($this->BuildTilePayload());
+    }
+
+    private function BuildTilePayload(): string
+    {
+        $rules = json_decode($this->ReadPropertyString('Rules'), true);
+        if (!is_array($rules)) {
+            $rules = [];
+        }
+        $catLabel = [
+            'any' => 'All', 'weather' => 'Weather', 'civil' => 'Civil protection',
+            'flood' => 'Flood', 'police' => 'Police',
+        ];
+        $list = [];
+        foreach ($rules as $r) {
+            if (!($r['Active'] ?? true)) {
+                continue;
+            }
+            $tv   = (int) ($r['TargetVariable'] ?? 0);
+            $name = ($tv > 0 && @IPS_VariableExists($tv)) ? IPS_GetName($tv) : '';
+            $list[] = [
+                'cat'    => $this->Translate($catLabel[$r['Category'] ?? 'any'] ?? 'All'),
+                'sev'    => (int) ($r['MinSeverity'] ?? 1),
+                'target' => $name,
+                'on'     => (string) ($r['ValueOn'] ?? ''),
+                'off'    => (string) ($r['ValueOff'] ?? ''),
+            ];
+        }
+        $state = json_decode($this->GetBuffer('RuleState'), true);
+        $cond  = is_array($state) ? in_array(true, array_map('boolval', $state), true) : false;
+
+        return json_encode([
+            'condition' => $cond,
+            'last'      => $this->GetValue('Letzte'),
+            'count'     => count($list),
+            'rules'     => $list,
+        ]);
     }
 
     /**
@@ -116,6 +174,7 @@ class UnwetterAktion extends IPSModule
             $this->FireAlert($rule, $fake);
             $n++;
         }
+        $this->PushVisu();
         echo sprintf($this->Translate('%d rule(s) triggered (test).'), $n);
     }
 
@@ -136,6 +195,7 @@ class UnwetterAktion extends IPSModule
         }
         // Zustände zurücksetzen, damit die nächste echte Warnung wieder auslöst.
         $this->SetBuffer('RuleState', json_encode([]));
+        $this->PushVisu();
         echo sprintf($this->Translate('%d rule(s) triggered (all-clear test).'), $n);
     }
 
@@ -217,6 +277,7 @@ class UnwetterAktion extends IPSModule
         }
 
         $this->SetBuffer('RuleState', json_encode($newState));
+        $this->PushVisu();
     }
 
     /** Reaktion, wenn die Bedingung neu erfüllt ist. */

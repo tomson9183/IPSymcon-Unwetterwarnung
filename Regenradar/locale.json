@@ -3,7 +3,10 @@
         "de": {
             "Please select…": "Bitte wählen…",
             "Please type at least 2 characters…": "Bitte mind. 2 Zeichen eingeben…",
-            "No match": "Kein Treffer"
+            "No match": "Kein Treffer",
+            "Please select a municipality first.": "Bitte zuerst eine Gemeinde wählen.",
+            "OK – radar image loaded (%d KB).": "OK – Radarbild geladen (%d KB).",
+            "Server could not load the image — the tile falls back to the direct DWD URL. Test URL:": "Server konnte das Bild nicht laden — die Kachel nutzt ersatzweise die direkte DWD-URL. Test-URL:"
         },
         "en": {
             "🌧️ REGENRADAR – zeigt das DWD-Niederschlagsradar als Kachel, zentriert auf deine Gemeinde. (Diese Instanz erzeugt KEINE Warnungen – dafür ist die „Warnzentrale“ zuständig.)": "🌧️ RAIN RADAR – shows the DWD precipitation radar as a tile, centred on your municipality. (This instance does NOT create warnings – use the \"Warning centre\" for that.)",
@@ -18,6 +21,7 @@
             "Bild-Aktualisierung (Sekunden)": "Image refresh (seconds)",
             "Quelle: offener DWD-GeoServer (maps.dwd.de) – kein Login nötig. Das Niederschlagsradar wird vom DWD ca. alle 5 Minuten aktualisiert.": "Source: open DWD GeoServer (maps.dwd.de) – no login required. The DWD updates the precipitation radar roughly every 5 minutes.",
             "Please select…": "Please select…",
+            "🔄 Radar jetzt laden / testen": "🔄 Load / test radar now",
             "Aktiv": "Active",
             "Nicht konfiguriert – bitte eine Gemeinde wählen": "Not configured – please select a municipality"
         }

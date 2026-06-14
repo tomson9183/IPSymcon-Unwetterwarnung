@@ -18,8 +18,6 @@ class UnwetterWarnzentrale extends IPSModule
     use NinaClient;
     use GemeindeData;
 
-    private const TX = '{4F06E498-15D9-4D4D-8C07-74AF664ECD8D}';
-
     public function Create()
     {
         parent::Create();
@@ -196,12 +194,9 @@ class UnwetterWarnzentrale extends IPSModule
         $this->SetBuffer('TileData', $tileData);
         $this->UpdateVisualizationValue($tileData);
 
-        // An Aktion-Childs verteilen
+        // Aktive Warnungen puffern – „Unwetter Aktionen“-Instanzen holen sie hier ab
+        // (sie lauschen per Nachricht auf die Variable „Letzte Aktualisierung“).
         $this->SetBuffer('Warnings', json_encode($warnings));
-        $this->SendDataToChildren(json_encode([
-            'DataID'   => self::TX,
-            'Warnings' => $warnings,
-        ]));
     }
 
     public function GetVisualizationTile()

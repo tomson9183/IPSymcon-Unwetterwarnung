@@ -20,6 +20,7 @@
             "Warning": "Warnung"
         },
         "en": {
+            "🛡️ WARNZENTRALE – zeigt alle Unwetter- & Gefahrenwarnungen für deine Gemeinde. (Für Reaktionen: Instanz „Unwetter Aktionen“; für die Radar-Kachel: Instanz „Regenradar“.)": "🛡️ WARNING CENTRE – shows all severe-weather & hazard warnings for your municipality. (For reactions use the \"Storm Actions\" instance; for the radar tile use the \"Rain radar\" instance.)",
             "Bundesland": "Federal state",
             "Gemeinde": "Municipality",
             "Gemeinde-genau filtern (Punkt-in-Polygon gegen die Warngebiete)": "Filter by municipality (point-in-polygon against the warning areas)",

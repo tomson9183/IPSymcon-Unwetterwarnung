@@ -13,7 +13,7 @@
     ],
     "url": "https://github.com/tomson9183/IPSymcon-Unwetterwarnung",
     "parentRequirements": [],
-    "childRequirements": ["{4F06E498-15D9-4D4D-8C07-74AF664ECD8D}"],
-    "implemented": ["{4F06E498-15D9-4D4D-8C07-74AF664ECD8D}"],
+    "childRequirements": [],
+    "implemented": [],
     "prefix": "UWZ"
 }

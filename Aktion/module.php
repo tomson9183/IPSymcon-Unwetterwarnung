@@ -17,12 +17,13 @@ declare(strict_types=1);
  */
 class UnwetterAktion extends IPSModule
 {
+    private const WZ_MODULE = '{A4A4B36B-D66C-44D7-AEC3-11AB352331F5}';
+
     public function Create()
     {
         parent::Create();
 
-        $this->ConnectParent('{A4A4B36B-D66C-44D7-AEC3-11AB352331F5}');
-
+        $this->RegisterPropertyInteger('WarnzentraleID', 0);
         $this->RegisterPropertyString('Rules', '[]');
 
         $this->RegisterVariableString('Letzte', $this->Translate('Last trigger'), '', 10);
@@ -32,29 +33,83 @@ class UnwetterAktion extends IPSModule
     {
         parent::ApplyChanges();
 
-        $this->SetStatus($this->HasActiveParent() ? 102 : 104);
-
-        // Eltern-Warnzentrale zum erneuten Senden anstoßen -> sofort aktuelle Daten.
-        if (IPS_GetKernelRunlevel() === KR_READY) {
-            $conn = (int) (IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
-            if ($conn > 0 && function_exists('UWZ_Update')) {
-                @UWZ_Update($conn);
+        // Alte Nachrichten-Registrierungen entfernen.
+        foreach ($this->GetMessageList() as $senderID => $messages) {
+            foreach ($messages as $message) {
+                $this->UnregisterMessage($senderID, $message);
             }
+        }
+
+        $wzID = $this->ResolveWarnzentrale();
+        if ($wzID <= 0) {
+            $this->SetStatus(104);
+            return;
+        }
+        $this->SetStatus(102);
+
+        // Auf Aktualisierungen der Warnzentrale lauschen (Variable „Letzte Aktualisierung“).
+        $varID = @IPS_GetObjectIDByIdent('LetzteAktualisierung', $wzID);
+        if ($varID) {
+            $this->RegisterMessage($varID, VM_UPDATE);
+        }
+
+        if (IPS_GetKernelRunlevel() === KR_READY) {
+            $this->PullAndEvaluate();
         }
     }
 
-    /** Empfängt die aktiven Warnungen von der Warnzentrale (Parent). */
-    public function ReceiveData($JSONString)
+    public function GetConfigurationForm()
     {
-        $data = json_decode($JSONString, true);
-        $warnings = is_array($data) ? ($data['Warnings'] ?? []) : [];
-        $this->Evaluate(is_array($warnings) ? $warnings : []);
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        // Falls genau EINE Warnzentrale existiert, im Feld vorbelegen.
+        if ($this->ReadPropertyInteger('WarnzentraleID') === 0) {
+            $list = IPS_GetInstanceListByModuleID(self::WZ_MODULE);
+            if (count($list) === 1) {
+                foreach ($form['elements'] as &$el) {
+                    if (($el['name'] ?? '') === 'WarnzentraleID') {
+                        $el['value'] = $list[0];
+                    }
+                }
+                unset($el);
+            }
+        }
+        return json_encode($form);
     }
 
-    /** Manuelles Auslösen zum Testen ist über die Warnzentrale (Update) abgedeckt. */
+    /** Reagiert auf Aktualisierungen der Warnzentrale. */
+    public function MessageSink($timestamp, $senderID, $message, $data)
+    {
+        if ($message === VM_UPDATE) {
+            $this->PullAndEvaluate();
+        }
+    }
+
     public function RequestAction($Ident, $Value)
     {
         throw new Exception('Invalid Ident: ' . $Ident);
+    }
+
+    /** Ermittelt die zu überwachende Warnzentrale (gewählt oder die einzige vorhandene). */
+    private function ResolveWarnzentrale(): int
+    {
+        $wzID = $this->ReadPropertyInteger('WarnzentraleID');
+        if ($wzID > 0 && @IPS_InstanceExists($wzID)) {
+            return $wzID;
+        }
+        $list = IPS_GetInstanceListByModuleID(self::WZ_MODULE);
+        return count($list) === 1 ? (int) $list[0] : 0;
+    }
+
+    /** Holt die aktiven Warnungen von der Warnzentrale und wertet die Regeln aus. */
+    private function PullAndEvaluate(): void
+    {
+        $wzID = $this->ResolveWarnzentrale();
+        if ($wzID <= 0 || !function_exists('UWZ_GetWarningsJSON')) {
+            return;
+        }
+        $json = @UWZ_GetWarningsJSON($wzID);
+        $warnings = json_decode((string) $json, true);
+        $this->Evaluate(is_array($warnings) ? $warnings : []);
     }
 
     /**

@@ -9,8 +9,8 @@
         "Rollladen bei Warnung"
     ],
     "url": "https://github.com/tomson9183/IPSymcon-Unwetterwarnung",
-    "parentRequirements": ["{4F06E498-15D9-4D4D-8C07-74AF664ECD8D}"],
+    "parentRequirements": [],
     "childRequirements": [],
-    "implemented": ["{4F06E498-15D9-4D4D-8C07-74AF664ECD8D}"],
+    "implemented": [],
     "prefix": "UWA"
 }

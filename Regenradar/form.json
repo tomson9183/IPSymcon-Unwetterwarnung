@@ -1,6 +1,10 @@
 {
     "elements": [
         {
+            "type": "Label",
+            "caption": "🌧️ REGENRADAR – zeigt das DWD-Niederschlagsradar als Kachel, zentriert auf deine Gemeinde. (Diese Instanz erzeugt KEINE Warnungen – dafür ist die „Warnzentrale“ zuständig.)"
+        },
+        {
             "type": "Select",
             "name": "Bundesland",
             "caption": "Bundesland",

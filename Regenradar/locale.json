@@ -4,6 +4,7 @@
             "Please select…": "Bitte wählen…"
         },
         "en": {
+            "🌧️ REGENRADAR – zeigt das DWD-Niederschlagsradar als Kachel, zentriert auf deine Gemeinde. (Diese Instanz erzeugt KEINE Warnungen – dafür ist die „Warnzentrale“ zuständig.)": "🌧️ RAIN RADAR – shows the DWD precipitation radar as a tile, centred on your municipality. (This instance does NOT create warnings – use the \"Warning centre\" for that.)",
             "Bundesland": "Federal state",
             "Gemeinde (Kartenmitte)": "Municipality (map centre)",
             "Kartenausschnitt": "Map extent",

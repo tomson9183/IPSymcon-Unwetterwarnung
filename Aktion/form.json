@@ -2,7 +2,13 @@
     "elements": [
         {
             "type": "Label",
-            "caption": "Diese Instanz reagiert auf die Warnungen ihrer übergeordneten Warnzentrale. Lege hier beliebig viele Regeln an."
+            "caption": "⚡ UNWETTER AKTIONEN – was beim Warnfall passieren soll. Lege beliebig viele Regeln an."
+        },
+        {
+            "type": "SelectInstance",
+            "name": "WarnzentraleID",
+            "caption": "Warnzentrale (Quelle der Warnungen)",
+            "validModules": ["{A4A4B36B-D66C-44D7-AEC3-11AB352331F5}"]
         },
         {
             "type": "List",
@@ -102,7 +108,7 @@
         {
             "code": 104,
             "icon": "inactive",
-            "caption": "Keine Warnzentrale als übergeordnete Instanz verbunden"
+            "caption": "Keine Warnzentrale gewählt/gefunden"
         }
     ]
 }

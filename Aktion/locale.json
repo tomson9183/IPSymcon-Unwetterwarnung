@@ -5,7 +5,8 @@
             "all-clear": "Entwarnung"
         },
         "en": {
-            "Diese Instanz reagiert auf die Warnungen ihrer übergeordneten Warnzentrale. Lege hier beliebig viele Regeln an.": "This instance reacts to the warnings of its parent warning centre. Add as many rules as you like.",
+            "⚡ UNWETTER AKTIONEN – was beim Warnfall passieren soll. Lege beliebig viele Regeln an.": "⚡ STORM ACTIONS – what should happen on a warning. Add as many rules as you like.",
+            "Warnzentrale (Quelle der Warnungen)": "Warning centre (source of warnings)",
             "Regeln (Bedingung → Reaktion)": "Rules (condition → reaction)",
             "Aktiv": "Active",
             "Kategorie": "Category",
@@ -27,7 +28,7 @@
             "Beispiel: Kategorie „Wetter“, ab Stufe 3, Stichwort „STURM“ → Zielvariable = Rollladen-Position, Wert bei Warnung = 100 (zu), Wert bei Entwarnung = 0 (auf). Werte: Zahl (z. B. 100), true/false, ein/aus oder Text. Für Push/Szene/HTTP ein Skript wählen (Warndaten stehen in $_IPS).": "Example: category \"Weather\", from level 3, keyword \"STORM\" → target variable = shutter position, value on warning = 100 (closed), value on all-clear = 0 (open). Values: number (e.g. 100), true/false, on/off or text. For push/scene/HTTP choose a script (warning data is available in $_IPS).",
             "Last trigger": "Last trigger",
             "all-clear": "all-clear",
-            "Keine Warnzentrale als übergeordnete Instanz verbunden": "No warning centre connected as parent instance"
+            "Keine Warnzentrale gewählt/gefunden": "No warning centre selected/found"
         }
     }
 }

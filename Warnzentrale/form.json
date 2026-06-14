@@ -1,6 +1,10 @@
 {
     "elements": [
         {
+            "type": "Label",
+            "caption": "🛡️ WARNZENTRALE – zeigt alle Unwetter- & Gefahrenwarnungen für deine Gemeinde. (Für Reaktionen: Instanz „Unwetter Aktionen“; für die Radar-Kachel: Instanz „Regenradar“.)"
+        },
+        {
             "type": "Select",
             "name": "Bundesland",
             "caption": "Bundesland",

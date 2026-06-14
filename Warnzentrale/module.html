@@ -3,72 +3,41 @@
 <head>
     <meta charset="utf-8">
     <style>
-        :root {
-            --txt: #f2f3f5;
-            --sub: #aab0b8;
-            --card: rgba(255, 255, 255, 0.07);
-        }
+        :root { --txt: #f2f3f5; --sub: #aab0b8; --card: rgba(255, 255, 255, 0.07); }
         @media (prefers-color-scheme: light) {
             :root { --txt: #1c1e22; --sub: #6a7078; --card: rgba(0, 0, 0, 0.05); }
         }
         * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-        body {
-            text-align: center;
-            font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-            color: var(--txt);
-        }
-        /* Box = volle Kachelhöhe (stabil), Karte mittig + skaliert -> kein Flackern */
-        #box { position: relative; width: 100%; height: 100vh; overflow: hidden; }
-        #card {
-            position: absolute; left: 50%; top: 50%;
-            transform-origin: center center;
-            width: 320px;
-            padding: 10px;
-            text-align: left;
-            will-change: transform;
-            backface-visibility: hidden;
-        }
-        #header {
-            display: flex; align-items: center; gap: 12px;
-            border-radius: 12px; padding: 12px 14px; color: #fff;
-        }
-        #icon { font-size: 30px; line-height: 1; }
+        /* Inhalt IM FLUSS (kein position:absolute) -> Kachel bekommt zuverlaessig Hoehe. */
+        html, body { margin: 0; padding: 0; overflow: hidden; }
+        body { padding: 10px; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--txt); }
+        #header { display: flex; align-items: center; gap: 12px; border-radius: 12px; padding: 12px 14px; color: #fff; }
+        #icon { font-size: 30px; line-height: 1; flex: none; }
         #headtext { flex: 1; min-width: 0; }
         #level { font-size: 16px; font-weight: 800; }
         #sub { font-size: 12px; opacity: 0.92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        #count { font-size: 24px; font-weight: 800; min-width: 34px; text-align: center; }
+        #count { font-size: 24px; font-weight: 800; min-width: 34px; text-align: center; flex: none; }
         #list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .c {
-            background: var(--card); border-left: 5px solid #888;
-            border-radius: 8px; padding: 8px 10px;
-        }
-        .c .hl { font-weight: 600; font-size: 14px; }
+        .c { background: var(--card); border-left: 5px solid #888; border-radius: 8px; padding: 8px 10px; }
+        .c .hl { font-weight: 600; font-size: 14px; word-break: break-word; }
         .c .meta { font-size: 11px; color: var(--sub); margin-top: 2px; }
-        .badge {
-            display: inline-block; padding: 1px 7px; border-radius: 10px;
-            font-size: 10px; font-weight: 700; color: #fff; margin-right: 6px;
-        }
+        .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; color: #fff; margin-right: 6px; }
         #empty { text-align: center; padding: 24px 10px; color: #2ecc71; font-weight: 700; }
         #updated { text-align: right; font-size: 10px; color: var(--sub); margin-top: 8px; }
     </style>
 </head>
 <body>
-    <div id="box">
-        <div id="card">
-            <div id="header">
-                <div id="icon">🟢</div>
-                <div id="headtext">
-                    <div id="level">–</div>
-                    <div id="sub"></div>
-                </div>
-                <div id="count">0</div>
-            </div>
-            <div id="list"></div>
-            <div id="empty" style="display:none;">Keine Warnungen – alles ruhig.</div>
-            <div id="updated"></div>
+    <div id="header">
+        <div id="icon">🟢</div>
+        <div id="headtext">
+            <div id="level">–</div>
+            <div id="sub"></div>
         </div>
+        <div id="count">0</div>
     </div>
+    <div id="list"></div>
+    <div id="empty" style="display:none;">Keine Warnungen – alles ruhig.</div>
+    <div id="updated"></div>
 
     <script>
         var COLORS = { 0: '#2ecc71', 1: '#f1c40f', 2: '#e67e22', 3: '#e74c3c', 4: '#8e44ad' };
@@ -76,24 +45,8 @@
         var CAT_ICON = { weather: '🌩️', civil: '⚠️', flood: '🌊', police: '🚓' };
 
         function escapeHtml(s) {
-            return String(s == null ? '' : s)
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
-
-        // Skaliert die feste Designkarte passgenau in die Kachel (kein Scrollen, kein Flackern).
-        var lastW = -1, lastCH = -1, rafPending = false;
-        function doFit() {
-            rafPending = false;
-            var card = document.getElementById('card');
-            var w = window.innerWidth, h = window.innerHeight;
-            var cw = card.offsetWidth, ch = card.offsetHeight;
-            if (!cw || !ch) { return; }
-            if (w === lastW && ch === lastCH) { return; } // reine Viewport-Hoehe (Hover) ignorieren
-            lastW = w; lastCH = ch;
-            var s = Math.min(w / cw, h / ch);
-            card.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
-        }
-        function fit() { if (rafPending) { return; } rafPending = true; requestAnimationFrame(doFit); }
 
         function render(data) {
             if (!data) { return; }
@@ -128,17 +81,10 @@
             });
 
             document.getElementById('updated').textContent = data.updated ? ('Stand: ' + data.updated) : '';
-            fit();
         }
 
-        // Von IP-Symcon bei UpdateVisualizationValue() aufgerufen.
         function handleMessage(data) { render(data); }
-
-        window.addEventListener('resize', fit);
-        if (window.ResizeObserver) { new ResizeObserver(fit).observe(document.documentElement); }
-        window.addEventListener('load', function () { fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
-
-        render(/*INITIAL_DATA*/null);
+        window.addEventListener('load', function () { render(/*INITIAL_DATA*/null); });
     </script>
 </body>
 </html>

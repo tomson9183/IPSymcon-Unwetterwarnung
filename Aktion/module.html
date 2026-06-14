@@ -8,10 +8,10 @@
             :root { --txt:#1c1e22; --sub:#6a7078; --card:rgba(0,0,0,0.05); --line:rgba(0,0,0,0.12); }
         }
         * { box-sizing: border-box; }
-        html, body { margin:0; padding:0; overflow:hidden; }
+        html, body { margin:0; padding:0; height:100%; overflow:hidden; }
         body { text-align:center; font-family:-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--txt); }
-        #box { position:relative; width:100%; overflow:hidden; }
-        #card { position:absolute; left:50%; top:0; transform-origin:top center; width:330px; padding:12px; text-align:left; }
+        #box { position:relative; width:100%; height:100vh; overflow:hidden; }
+        #card { position:absolute; left:50%; top:50%; transform-origin:center center; width:330px; padding:12px; text-align:left; }
         #head { display:flex; align-items:center; gap:10px; }
         #head .t { font-size:16px; font-weight:800; flex:1; }
         #dot { width:14px; height:14px; border-radius:50%; background:#2ecc71; box-shadow:0 0 8px rgba(0,0,0,.25); }
@@ -58,12 +58,11 @@
         function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
         function fit() {
-            var box=document.getElementById('box'), card=document.getElementById('card');
+            var card=document.getElementById('card');
             var w=window.innerWidth, h=window.innerHeight, cw=card.offsetWidth, ch=card.offsetHeight;
             if(!cw||!ch) return;
             var s=Math.min(w/cw, h/ch);
-            card.style.transform='translateX(-50%) scale('+s+')';
-            box.style.height=(ch*s)+'px';
+            card.style.transform='translate(-50%,-50%) scale('+s+')';
         }
 
         function trigger(ident, btn) {

@@ -12,17 +12,17 @@
             :root { --txt: #1c1e22; --sub: #6a7078; --card: rgba(0, 0, 0, 0.05); }
         }
         * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; overflow: hidden; }
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
         body {
             text-align: center;
             font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
             color: var(--txt);
         }
-        /* fixe Box, Inhalt bleibt im Fluss -> Fit() skaliert passgenau (Meross-Konvention) */
-        #box { position: relative; width: 100%; overflow: hidden; }
+        /* Box = volle Kachelhöhe (stabil), Karte mittig + skaliert -> kein Flackern */
+        #box { position: relative; width: 100%; height: 100vh; overflow: hidden; }
         #card {
-            position: absolute; left: 50%; top: 0;
-            transform-origin: top center;
+            position: absolute; left: 50%; top: 50%;
+            transform-origin: center center;
             width: 320px;
             padding: 10px;
             text-align: left;
@@ -78,16 +78,14 @@
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        // Skaliert die feste Designkarte passgenau in die Kachel (kein Scrollen).
+        // Skaliert die feste Designkarte passgenau in die Kachel (kein Scrollen, kein Flackern).
         function fit() {
-            var box = document.getElementById('box');
             var card = document.getElementById('card');
             var w = window.innerWidth, h = window.innerHeight;
             var cw = card.offsetWidth, ch = card.offsetHeight;
             if (!cw || !ch) { return; }
             var s = Math.min(w / cw, h / ch);
-            card.style.transform = 'translateX(-50%) scale(' + s + ')';
-            box.style.height = (ch * s) + 'px';
+            card.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
         }
 
         function render(data) {

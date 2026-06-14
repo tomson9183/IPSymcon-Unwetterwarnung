@@ -35,8 +35,15 @@
         },
         {
             "type": "NumberSpinner",
+            "name": "Frames",
+            "caption": "Animation: Anzahl Zeitschritte (à 5 min)",
+            "minimum": 1,
+            "maximum": 24
+        },
+        {
+            "type": "NumberSpinner",
             "name": "RefreshInterval",
-            "caption": "Bild-Aktualisierung (Sekunden)",
+            "caption": "Aktualisierung der Zeitschritte (Sekunden)",
             "minimum": 60,
             "maximum": 3600,
             "suffix": "s"

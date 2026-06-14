@@ -3,119 +3,119 @@
 <head>
     <meta charset="utf-8">
     <style>
-        :root { --txt: #f2f3f5; --sub: #aab0b8; --bg: rgba(255,255,255,0.06); }
-        @media (prefers-color-scheme: light) {
-            :root { --txt: #1c1e22; --sub: #6a7078; --bg: rgba(0,0,0,0.04); }
-        }
+        :root { --txt:#f2f3f5; --sub:#aab0b8; --bg:rgba(255,255,255,0.06); }
+        @media (prefers-color-scheme: light) { :root { --txt:#1c1e22; --sub:#6a7078; --bg:rgba(0,0,0,0.04); } }
         * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; overflow: hidden; }
-        body {
-            text-align: center;
-            font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-            color: var(--txt);
-        }
-        #box { position: relative; width: 100%; overflow: hidden; }
-        #card {
-            position: absolute; left: 50%; top: 0;
-            transform-origin: top center;
-            width: 360px; padding: 10px; text-align: left;
-        }
-        #title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
-        #title .t { font-size: 15px; font-weight: 800; }
-        #title .p { font-size: 12px; color: var(--sub); }
-        #map {
-            position: relative; width: 100%; border-radius: 12px; overflow: hidden;
-            background: var(--bg); aspect-ratio: 1 / 0.66;
-        }
-        #img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        #marker {
-            position: absolute; left: 50%; top: 50%; width: 14px; height: 14px;
-            transform: translate(-50%, -50%);
-            border: 3px solid #e74c3c; border-radius: 50%;
-            box-shadow: 0 0 0 2px rgba(255,255,255,0.8);
-            pointer-events: none;
-        }
-        #foot { font-size: 10px; color: var(--sub); margin-top: 6px; text-align: right; }
-        #hint { padding: 26px 10px; text-align: center; color: var(--sub); }
-        .legend {
-            position: absolute; left: 8px; bottom: 8px;
-            background: rgba(0,0,0,0.45); color: #fff; border-radius: 6px;
-            padding: 4px 7px; font-size: 9px; line-height: 1.5;
-        }
-        .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 3px; vertical-align: -1px; }
+        html, body { margin:0; padding:0; height:100%; overflow:hidden; }
+        body { text-align:center; font-family:-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--txt); }
+        #box { position:relative; width:100%; height:100vh; overflow:hidden; }
+        #card { position:absolute; left:50%; top:50%; transform-origin:center center; width:360px; padding:10px; text-align:left; }
+        #title { display:flex; align-items:baseline; gap:8px; margin-bottom:8px; }
+        #title .t { font-size:15px; font-weight:800; }
+        #title .p { font-size:12px; color:var(--sub); }
+        #map { position:relative; width:100%; border-radius:12px; overflow:hidden; background:var(--bg); aspect-ratio:1 / 0.66; }
+        #img { width:100%; height:100%; object-fit:cover; display:block; }
+        #marker { position:absolute; left:50%; top:50%; width:14px; height:14px; transform:translate(-50%,-50%);
+            border:3px solid #e74c3c; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,0.85); pointer-events:none; }
+        #clock { position:absolute; right:8px; top:8px; background:rgba(0,0,0,0.55); color:#fff;
+            border-radius:6px; padding:2px 8px; font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+        #bar { position:absolute; left:0; bottom:0; height:3px; background:#4aa3ff; width:0%; transition:width .15s linear; }
+        .legend { position:absolute; left:8px; bottom:8px; background:rgba(0,0,0,0.5); color:#fff; border-radius:6px;
+            padding:4px 7px; font-size:9px; line-height:1.5; }
+        .legend i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:3px; vertical-align:-1px; }
+        #foot { font-size:10px; color:var(--sub); margin-top:6px; text-align:right; }
+        #hint { padding:26px 10px; text-align:center; color:var(--sub); }
     </style>
 </head>
 <body>
     <div id="box">
         <div id="card">
-            <div id="title">
-                <span class="t">🌧️ Regenradar</span>
-                <span class="p" id="place"></span>
-            </div>
+            <div id="title"><span class="t">🌧️ Regenradar</span><span class="p" id="place"></span></div>
             <div id="map">
                 <img id="img" alt="">
                 <div id="marker"></div>
+                <div id="clock"></div>
                 <div class="legend">
                     <span><i style="background:#a0c8ff"></i>leicht</span>
                     <span><i style="background:#1f8a1f"></i>mäßig</span>
                     <span><i style="background:#ffd400"></i>stark</span>
                     <span><i style="background:#e60000"></i>heftig</span>
                 </div>
+                <div id="bar"></div>
             </div>
-            <div id="foot"></div>
+            <div id="foot">DWD · Niederschlagsradar (Verlauf der letzten Stunde)</div>
             <div id="hint" style="display:none;"></div>
         </div>
     </div>
 
     <script>
+        var frames = [], imgs = [], idx = 0, timer = null, loaded = 0;
+
         function fit() {
-            var box = document.getElementById('box');
             var card = document.getElementById('card');
-            var w = window.innerWidth, h = window.innerHeight;
-            var cw = card.offsetWidth, ch = card.offsetHeight;
+            var w = window.innerWidth, h = window.innerHeight, cw = card.offsetWidth, ch = card.offsetHeight;
             if (!cw || !ch) { return; }
             var s = Math.min(w / cw, h / ch);
-            card.style.transform = 'translateX(-50%) scale(' + s + ')';
-            box.style.height = (ch * s) + 'px';
+            card.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
         }
 
-        function render(data) {
-            if (!data) { return; }
+        function stop() { if (timer) { clearInterval(timer); timer = null; } }
+
+        function show(i) {
+            if (!frames.length) { return; }
+            idx = i % frames.length;
+            var img = document.getElementById('img');
+            img.src = frames[idx].url;
+            document.getElementById('clock').textContent = frames[idx].label || '';
+            document.getElementById('bar').style.width = (((idx + 1) / frames.length) * 100) + '%';
+        }
+
+        function play() {
+            stop();
+            if (!frames.length) { return; }
+            var i = 0;
+            timer = setInterval(function () {
+                // am letzten Frame kurz halten
+                show(i);
+                i = (i + 1) % frames.length;
+            }, 550);
+        }
+
+        function start(data) {
             if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { return; } }
-
-            // Bevorzugt das serverseitig geladene Bild, sonst die externe DWD-URL.
-            var src = (data.img && data.img.length > 10) ? data.img : (data.url || '');
-            var show = data.configured && src;
-
+            if (!data) { return; }
+            stop();
+            frames = data.frames || [];
             document.getElementById('place').textContent = data.place || '';
-            document.getElementById('map').style.display = show ? 'block' : 'none';
-            var hint = document.getElementById('hint');
-            hint.style.display = show ? 'none' : 'block';
-            hint.textContent = !data.configured
-                ? 'Bitte in der Konfiguration eine Gemeinde wählen.'
-                : 'Radarbild wird geladen … (falls dauerhaft leer: Konfig → „Radar jetzt laden / testen“).';
 
-            if (show) {
-                var img = document.getElementById('img');
-                img.onload = fit;
-                img.onerror = function () {
-                    // Falls die data-URI scheitert, externe URL versuchen.
-                    if (data.url && img.src !== data.url) { img.src = data.url; }
-                };
-                img.src = src;
-                document.getElementById('foot').textContent =
-                    data.updated ? ('DWD · Stand ' + data.updated) : 'DWD';
+            var ok = data.configured && frames.length > 0;
+            document.getElementById('map').style.display = ok ? 'block' : 'none';
+            var hint = document.getElementById('hint');
+            hint.style.display = ok ? 'none' : 'block';
+            hint.textContent = data.configured
+                ? 'Radar wird geladen … (falls leer: Konfig → „Radar jetzt laden / testen“).'
+                : 'Bitte in der Konfiguration eine Gemeinde wählen.';
+
+            if (ok) {
+                // alle Frames vorladen, dann abspielen
+                imgs = []; loaded = 0;
+                frames.forEach(function (f) {
+                    var im = new Image();
+                    im.onload = im.onerror = function () { loaded++; if (loaded === 1) { show(0); } if (loaded >= frames.length) { play(); } };
+                    im.src = f.url;
+                    imgs.push(im);
+                });
+                show(0);
             }
             fit();
         }
 
-        // Von IP-Symcon bei UpdateVisualizationValue() aufgerufen (neues Bild vom Server).
-        function handleMessage(data) { render(data); }
+        function handleMessage(data) { start(data); }
 
         window.addEventListener('resize', fit);
         window.addEventListener('load', function () { fit(); setTimeout(fit, 80); setTimeout(fit, 300); });
 
-        render(/*INITIAL_DATA*/null);
+        start(/*INITIAL_DATA*/null);
     </script>
 </body>
 </html>

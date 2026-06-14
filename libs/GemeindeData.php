@@ -81,6 +81,38 @@ trait GemeindeData
         return $options;
     }
 
+    /**
+     * Gemeinden, deren Name (oder Kreis) den Suchtext enthält – für die Tastatur-Suche.
+     * Begrenzt die Trefferzahl, damit das Formular klein bleibt.
+     */
+    private function GemeindeOptionsBySearch(string $query, int $limit = 300): array
+    {
+        $q = trim($query);
+        $options = [['caption' => $this->Translate('Please type at least 2 characters…'), 'value' => '']];
+        if (mb_strlen($q) < 2) {
+            return $options;
+        }
+        $options = [];
+        $count = 0;
+        foreach ($this->GemeindenAll() as $g) {
+            $name = (string) ($g['n'] ?? '');
+            $kreis = (string) ($g['k'] ?? '');
+            if (stripos($name, $q) !== false || stripos($kreis, $q) !== false) {
+                $options[] = [
+                    'caption' => $name . ' (' . $kreis . ', ' . ($g['l'] ?? '') . ')',
+                    'value'   => $g['a'] ?? '',
+                ];
+                if (++$count >= $limit) {
+                    break;
+                }
+            }
+        }
+        if ($count === 0) {
+            $options[] = ['caption' => $this->Translate('No match'), 'value' => ''];
+        }
+        return $options;
+    }
+
     /** Bundesland einer Gemeinde (zum Vorbelegen beim Öffnen des Formulars). */
     private function LandOfGemeinde(string $ars): string
     {

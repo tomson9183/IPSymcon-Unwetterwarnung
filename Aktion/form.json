@@ -98,7 +98,18 @@
             "caption": "Beispiel: Kategorie „Wetter“, ab Stufe 3, Stichwort „STURM“ → Zielvariable = Rollladen-Position, Wert bei Warnung = 100 (zu), Wert bei Entwarnung = 0 (auf). Werte: Zahl (z. B. 100), true/false, ein/aus oder Text. Für Push/Szene/HTTP ein Skript wählen (Warndaten stehen in $_IPS)."
         }
     ],
-    "actions": [],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "🔔 Test: Warnung simulieren (löst alle Regeln aus)",
+            "onClick": "UWA_Test($id);"
+        },
+        {
+            "type": "Button",
+            "caption": "✅ Test: Entwarnung simulieren",
+            "onClick": "UWA_TestClear($id);"
+        }
+    ],
     "status": [
         {
             "code": 102,

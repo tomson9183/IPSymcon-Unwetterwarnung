@@ -1,10 +1,14 @@
 {
     "translations": {
         "de": {
-            "Please select…": "Bitte wählen…"
+            "Please select…": "Bitte wählen…",
+            "Please type at least 2 characters…": "Bitte mind. 2 Zeichen eingeben…",
+            "No match": "Kein Treffer"
         },
         "en": {
             "🌧️ REGENRADAR – zeigt das DWD-Niederschlagsradar als Kachel, zentriert auf deine Gemeinde. (Diese Instanz erzeugt KEINE Warnungen – dafür ist die „Warnzentrale“ zuständig.)": "🌧️ RAIN RADAR – shows the DWD precipitation radar as a tile, centred on your municipality. (This instance does NOT create warnings – use the \"Warning centre\" for that.)",
+            "Gemeinde suchen (tippen, dann unten auswählen)": "Search municipality (type, then select below)",
+            "… oder nach Bundesland filtern": "… or filter by federal state",
             "Bundesland": "Federal state",
             "Gemeinde (Kartenmitte)": "Municipality (map centre)",
             "Kartenausschnitt": "Map extent",

@@ -11,6 +11,8 @@
             "Messages": "Meldungen",
             "Last update": "Letzte Aktualisierung",
             "Please select…": "Bitte wählen…",
+            "Please type at least 2 characters…": "Bitte mind. 2 Zeichen eingeben…",
+            "No match": "Kein Treffer",
             "No current warnings.": "Keine aktuellen Warnungen.",
             "No warning": "Keine Warnung",
             "Information": "Vorinformation",
@@ -21,6 +23,8 @@
         },
         "en": {
             "🛡️ WARNZENTRALE – zeigt alle Unwetter- & Gefahrenwarnungen für deine Gemeinde. (Für Reaktionen: Instanz „Unwetter Aktionen“; für die Radar-Kachel: Instanz „Regenradar“.)": "🛡️ WARNING CENTRE – shows all severe-weather & hazard warnings for your municipality. (For reactions use the \"Storm Actions\" instance; for the radar tile use the \"Rain radar\" instance.)",
+            "Gemeinde suchen (tippen, dann unten auswählen)": "Search municipality (type, then select below)",
+            "… oder nach Bundesland filtern": "… or filter by federal state",
             "Bundesland": "Federal state",
             "Gemeinde": "Municipality",
             "Gemeinde-genau filtern (Punkt-in-Polygon gegen die Warngebiete)": "Filter by municipality (point-in-polygon against the warning areas)",

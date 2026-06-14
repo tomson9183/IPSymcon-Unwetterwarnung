@@ -28,7 +28,6 @@
             background: var(--bg); aspect-ratio: 1 / 0.66;
         }
         #img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        /* Gemeinde-Markierung exakt in der Kartenmitte */
         #marker {
             position: absolute; left: 50%; top: 50%; width: 14px; height: 14px;
             transform: translate(-50%, -50%);
@@ -37,7 +36,7 @@
             pointer-events: none;
         }
         #foot { font-size: 10px; color: var(--sub); margin-top: 6px; text-align: right; }
-        #hint { padding: 24px 10px; text-align: center; color: var(--sub); }
+        #hint { padding: 26px 10px; text-align: center; color: var(--sub); }
         .legend {
             position: absolute; left: 8px; bottom: 8px;
             background: rgba(0,0,0,0.45); color: #fff; border-radius: 6px;
@@ -54,13 +53,13 @@
                 <span class="p" id="place"></span>
             </div>
             <div id="map">
-                <img id="img" alt="DWD Niederschlagsradar">
+                <img id="img" alt="">
                 <div id="marker"></div>
                 <div class="legend">
                     <span><i style="background:#a0c8ff"></i>leicht</span>
                     <span><i style="background:#1f8a1f"></i>mäßig</span>
                     <span><i style="background:#ffd400"></i>stark</span>
-                    <span><i style="background:#e60000"></i>sehr stark</span>
+                    <span><i style="background:#e60000"></i>heftig</span>
                 </div>
             </div>
             <div id="foot"></div>
@@ -69,9 +68,6 @@
     </div>
 
     <script>
-        var CFG = /*INITIAL_DATA*/null;
-        var timer = null;
-
         function fit() {
             var box = document.getElementById('box');
             var card = document.getElementById('card');
@@ -83,34 +79,32 @@
             box.style.height = (ch * s) + 'px';
         }
 
-        function refreshImg() {
-            if (!CFG || !CFG.url) { return; }
-            var img = document.getElementById('img');
-            img.onload = fit;
-            img.src = CFG.url + '&t=' + Date.now();
-            document.getElementById('foot').textContent =
-                'DWD · Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-        }
+        function render(data) {
+            if (!data) { return; }
+            if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { return; } }
 
-        function start(cfg) {
-            if (cfg) { CFG = cfg; }
-            if (typeof CFG === 'string') { try { CFG = JSON.parse(CFG); } catch (e) {} }
-            var hasUrl = CFG && CFG.url;
-            document.getElementById('map').style.display = hasUrl ? 'block' : 'none';
-            document.getElementById('hint').style.display = hasUrl ? 'none' : 'block';
-            document.getElementById('place').textContent = (CFG && CFG.place) ? CFG.place : '';
-            if (hasUrl) {
-                refreshImg();
-                if (timer) { clearInterval(timer); }
-                timer = setInterval(refreshImg, (CFG.refresh || 300) * 1000);
+            var hasImg = data.img && data.img.length > 10;
+            document.getElementById('map').style.display = hasImg ? 'block' : 'none';
+            document.getElementById('hint').style.display = hasImg ? 'none' : 'block';
+            document.getElementById('place').textContent = data.place || '';
+
+            if (hasImg) {
+                var img = document.getElementById('img');
+                img.onload = fit;
+                img.src = data.img;
+                document.getElementById('foot').textContent =
+                    data.updated ? ('DWD · Stand ' + data.updated) : 'DWD';
             }
             fit();
         }
 
-        function handleMessage(data) { start(data); }
+        // Von IP-Symcon bei UpdateVisualizationValue() aufgerufen (neues Bild vom Server).
+        function handleMessage(data) { render(data); }
 
         window.addEventListener('resize', fit);
-        window.addEventListener('load', function () { start(null); setTimeout(fit, 80); setTimeout(fit, 300); });
+        window.addEventListener('load', function () { fit(); setTimeout(fit, 80); setTimeout(fit, 300); });
+
+        render(/*INITIAL_DATA*/null);
     </script>
 </body>
 </html>

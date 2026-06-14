@@ -89,6 +89,56 @@ class UnwetterAktion extends IPSModule
         throw new Exception('Invalid Ident: ' . $Ident);
     }
 
+    /**
+     * Test: simuliert eine Warnung und löst die „Warnung“-Reaktion JEDER aktiven Regel
+     * aus (unabhängig von der echten Bedingung), damit man die Reaktionen prüfen kann.
+     */
+    public function Test(): void
+    {
+        $rules = json_decode($this->ReadPropertyString('Rules'), true);
+        if (!is_array($rules) || count($rules) === 0) {
+            echo $this->Translate('No rules defined.');
+            return;
+        }
+        $n = 0;
+        foreach ($rules as $rule) {
+            if (!($rule['Active'] ?? true)) {
+                continue;
+            }
+            $cat = (string) ($rule['Category'] ?? 'any');
+            $fake = [
+                'id'       => 'TEST-' . time() . '-' . $n,
+                'headline' => $this->Translate('TEST: simulated warning'),
+                'provider' => 'TEST',
+                'category' => $cat === 'any' ? 'weather' : $cat,
+                'severity' => max(1, (int) ($rule['MinSeverity'] ?? 4)),
+            ];
+            $this->FireAlert($rule, $fake);
+            $n++;
+        }
+        echo sprintf($this->Translate('%d rule(s) triggered (test).'), $n);
+    }
+
+    /** Test: löst die „Entwarnung“-Reaktion jeder aktiven Regel aus. */
+    public function TestClear(): void
+    {
+        $rules = json_decode($this->ReadPropertyString('Rules'), true);
+        if (!is_array($rules)) {
+            $rules = [];
+        }
+        $n = 0;
+        foreach ($rules as $rule) {
+            if (!($rule['Active'] ?? true)) {
+                continue;
+            }
+            $this->FireClear($rule);
+            $n++;
+        }
+        // Zustände zurücksetzen, damit die nächste echte Warnung wieder auslöst.
+        $this->SetBuffer('RuleState', json_encode([]));
+        echo sprintf($this->Translate('%d rule(s) triggered (all-clear test).'), $n);
+    }
+
     /** Ermittelt die zu überwachende Warnzentrale (gewählt oder die einzige vorhandene). */
     private function ResolveWarnzentrale(): int
     {

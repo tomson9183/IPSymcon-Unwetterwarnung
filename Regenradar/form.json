@@ -5,9 +5,15 @@
             "caption": "🌧️ REGENRADAR – zeigt das DWD-Niederschlagsradar als Kachel, zentriert auf deine Gemeinde. (Diese Instanz erzeugt KEINE Warnungen – dafür ist die „Warnzentrale“ zuständig.)"
         },
         {
+            "type": "ValidationTextBox",
+            "name": "Suche",
+            "caption": "Gemeinde suchen (tippen, dann unten auswählen)",
+            "onChange": "UWR_Search($id, $Suche);"
+        },
+        {
             "type": "Select",
             "name": "Bundesland",
-            "caption": "Bundesland",
+            "caption": "… oder nach Bundesland filtern",
             "options": [],
             "onChange": "UWR_SetLand($id, $Bundesland);"
         },

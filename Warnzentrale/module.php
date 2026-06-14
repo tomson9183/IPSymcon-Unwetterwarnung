@@ -22,6 +22,7 @@ class UnwetterWarnzentrale extends IPSModule
     {
         parent::Create();
 
+        $this->RegisterPropertyString('Suche', '');
         $this->RegisterPropertyString('Bundesland', '');
         $this->RegisterPropertyString('GemeindeARS', '');
         $this->RegisterPropertyBoolean('GemeindeGenau', true);
@@ -97,6 +98,12 @@ class UnwetterWarnzentrale extends IPSModule
     {
         $this->UpdateFormField('GemeindeARS', 'options', json_encode($this->GemeindeOptionsForLand($Bundesland)));
         $this->UpdateFormField('GemeindeARS', 'value', '');
+    }
+
+    /** Tastatur-Suche: füllt die Gemeinde-Liste mit den Treffern zum Suchtext. */
+    public function Search(string $Suche): void
+    {
+        $this->UpdateFormField('GemeindeARS', 'options', json_encode($this->GemeindeOptionsBySearch($Suche)));
     }
 
     public function RequestAction($Ident, $Value)

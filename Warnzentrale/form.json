@@ -5,9 +5,15 @@
             "caption": "🛡️ WARNZENTRALE – zeigt alle Unwetter- & Gefahrenwarnungen für deine Gemeinde. (Für Reaktionen: Instanz „Unwetter Aktionen“; für die Radar-Kachel: Instanz „Regenradar“.)"
         },
         {
+            "type": "ValidationTextBox",
+            "name": "Suche",
+            "caption": "Gemeinde suchen (tippen, dann unten auswählen)",
+            "onChange": "UWZ_Search($id, $Suche);"
+        },
+        {
             "type": "Select",
             "name": "Bundesland",
-            "caption": "Bundesland",
+            "caption": "… oder nach Bundesland filtern",
             "options": [],
             "onChange": "UWZ_SetLand($id, $Bundesland);"
         },

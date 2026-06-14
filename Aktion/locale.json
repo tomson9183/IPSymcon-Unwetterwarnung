@@ -2,7 +2,11 @@
     "translations": {
         "de": {
             "Last trigger": "Letzte Auslösung",
-            "all-clear": "Entwarnung"
+            "all-clear": "Entwarnung",
+            "No rules defined.": "Keine Regeln definiert.",
+            "TEST: simulated warning": "TEST: simulierte Warnung",
+            "%d rule(s) triggered (test).": "%d Regel(n) ausgelöst (Test).",
+            "%d rule(s) triggered (all-clear test).": "%d Regel(n) ausgelöst (Entwarnungs-Test)."
         },
         "en": {
             "⚡ UNWETTER AKTIONEN – was beim Warnfall passieren soll. Lege beliebig viele Regeln an.": "⚡ STORM ACTIONS – what should happen on a warning. Add as many rules as you like.",
@@ -28,7 +32,9 @@
             "Beispiel: Kategorie „Wetter“, ab Stufe 3, Stichwort „STURM“ → Zielvariable = Rollladen-Position, Wert bei Warnung = 100 (zu), Wert bei Entwarnung = 0 (auf). Werte: Zahl (z. B. 100), true/false, ein/aus oder Text. Für Push/Szene/HTTP ein Skript wählen (Warndaten stehen in $_IPS).": "Example: category \"Weather\", from level 3, keyword \"STORM\" → target variable = shutter position, value on warning = 100 (closed), value on all-clear = 0 (open). Values: number (e.g. 100), true/false, on/off or text. For push/scene/HTTP choose a script (warning data is available in $_IPS).",
             "Last trigger": "Last trigger",
             "all-clear": "all-clear",
-            "Keine Warnzentrale gewählt/gefunden": "No warning centre selected/found"
+            "Keine Warnzentrale gewählt/gefunden": "No warning centre selected/found",
+            "🔔 Test: Warnung simulieren (löst alle Regeln aus)": "🔔 Test: simulate warning (triggers all rules)",
+            "✅ Test: Entwarnung simulieren": "✅ Test: simulate all-clear"
         }
     }
 }

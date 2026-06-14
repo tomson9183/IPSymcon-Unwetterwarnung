@@ -5,15 +5,17 @@ declare(strict_types=1);
 /**
  * GemeindeData – gemeinsame Helfer für die Gemeinde-Auswahl.
  *
- * Die Datei libs/gemeinden.json enthält alle ~11.000 deutschen Gemeinden mit:
- *   a = ARS (12-stellig, amtlicher Regionalschlüssel der Gemeinde)
- *   n = Name, k = Kreis, l = Bundesland, y = Breite (lat), x = Länge (lon)
+ * libs/gemeinden.json: alle ~11.000 Gemeinden mit
+ *   a = ARS (12-stellig), n = Name, k = Kreis, l = Bundesland, y = lat, x = lon.
  *
- * Wird von der Warnzentrale und vom Regenradar genutzt.
+ * Wegen des 1-MB-Limits für Konfigurationsformulare wird die Auswahl als
+ * Kaskade Bundesland -> Gemeinde umgesetzt (per UpdateFormField), damit nie alle
+ * Gemeinden auf einmal ins Formular geschrieben werden.
+ *
+ * Genutzt von Warnzentrale und Regenradar.
  */
 trait GemeindeData
 {
-    /** Lädt die Gemeinde-Liste (gecacht über statische Variable). */
     private function GemeindenAll(): array
     {
         static $cache = null;
@@ -26,7 +28,6 @@ trait GemeindeData
         return $cache;
     }
 
-    /** Sucht eine Gemeinde anhand ihres ARS. */
     private function GemeindeLookup(string $ars): ?array
     {
         foreach ($this->GemeindenAll() as $g) {
@@ -37,26 +38,77 @@ trait GemeindeData
         return null;
     }
 
-    /** Baut die Optionsliste für ein Select-Formularelement. */
-    private function GemeindeOptions(): array
+    /** Optionsliste aller Bundesländer (klein, 16 Einträge). */
+    private function BundeslandOptions(): array
+    {
+        $set = [];
+        foreach ($this->GemeindenAll() as $g) {
+            $l = (string) ($g['l'] ?? '');
+            if ($l !== '') {
+                $set[$l] = true;
+            }
+        }
+        $laender = array_keys($set);
+        sort($laender);
+
+        $options = [['caption' => $this->Translate('Please select…'), 'value' => '']];
+        foreach ($laender as $l) {
+            $options[] = ['caption' => $l, 'value' => $l];
+        }
+        return $options;
+    }
+
+    /** Gemeinden eines Bundeslandes als Optionsliste (für UpdateFormField). */
+    private function GemeindeOptionsForLand(string $land): array
     {
         $options = [['caption' => $this->Translate('Please select…'), 'value' => '']];
+        if ($land === '') {
+            return $options;
+        }
+        $rows = [];
         foreach ($this->GemeindenAll() as $g) {
+            if (($g['l'] ?? '') === $land) {
+                $rows[] = $g;
+            }
+        }
+        usort($rows, fn ($a, $b) => strcmp((string) ($a['n'] ?? ''), (string) ($b['n'] ?? '')));
+        foreach ($rows as $g) {
             $options[] = [
-                'caption' => ($g['l'] ?? '') . ' – ' . ($g['n'] ?? '') . ' (' . ($g['k'] ?? '') . ')',
+                'caption' => ($g['n'] ?? '') . ' (' . ($g['k'] ?? '') . ')',
                 'value'   => $g['a'] ?? '',
             ];
         }
         return $options;
     }
 
-    /** Setzt die Gemeinde-Optionen in ein Select-Element des Formulars ein. */
-    private function InjectGemeindeOptions(array $form, string $elementName): array
+    /** Bundesland einer Gemeinde (zum Vorbelegen beim Öffnen des Formulars). */
+    private function LandOfGemeinde(string $ars): string
     {
-        $options = $this->GemeindeOptions();
+        $g = $this->GemeindeLookup($ars);
+        return $g ? (string) ($g['l'] ?? '') : '';
+    }
+
+    /**
+     * Bereitet das Formular vor: Bundesland-Optionen setzen und – sofern ein
+     * Bundesland (oder eine gespeicherte Gemeinde) bekannt ist – die passenden
+     * Gemeinde-Optionen einsetzen (klein gehalten).
+     */
+    private function PrepareGemeindeForm(array $form, string $landProp, string $gemeindeProp): array
+    {
+        $savedLand = $this->ReadPropertyString($landProp);
+        $savedArs  = $this->ReadPropertyString($gemeindeProp);
+        if ($savedLand === '' && $savedArs !== '') {
+            $savedLand = $this->LandOfGemeinde($savedArs);
+        }
+
+        $bundesOpts   = $this->BundeslandOptions();
+        $gemeindeOpts = $this->GemeindeOptionsForLand($savedLand);
+
         foreach ($form['elements'] as &$element) {
-            if (($element['name'] ?? '') === $elementName) {
-                $element['options'] = $options;
+            if (($element['name'] ?? '') === $landProp) {
+                $element['options'] = $bundesOpts;
+            } elseif (($element['name'] ?? '') === $gemeindeProp) {
+                $element['options'] = $gemeindeOpts;
             }
         }
         unset($element);

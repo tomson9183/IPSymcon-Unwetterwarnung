@@ -1,34 +1,32 @@
 {
     "translations": {
         "de": {
-            "Condition met": "Bedingung erfüllt",
             "Last trigger": "Letzte Auslösung",
             "all-clear": "Entwarnung"
         },
         "en": {
-            "Diese Instanz reagiert auf die Warnungen ihrer übergeordneten Warnzentrale.": "This instance reacts to the warnings of its parent warning centre.",
-            "Bedingung – wann soll reagiert werden?": "Condition – when to react?",
+            "Diese Instanz reagiert auf die Warnungen ihrer übergeordneten Warnzentrale. Lege hier beliebig viele Regeln an.": "This instance reacts to the warnings of its parent warning centre. Add as many rules as you like.",
+            "Regeln (Bedingung → Reaktion)": "Rules (condition → reaction)",
+            "Aktiv": "Active",
             "Kategorie": "Category",
             "Alle": "All",
             "Wetter (DWD)": "Weather (DWD)",
             "Zivilschutz": "Civil protection",
             "Hochwasser": "Flood",
             "Polizei": "Police",
-            "Ab Warnstufe": "From warning level",
+            "Ab Stufe": "From level",
             "1 – Vorinformation": "1 – information",
             "2 – Wetterwarnung": "2 – weather warning",
             "3 – Markante Warnung": "3 – severe warning",
             "4 – Extreme Gefahr": "4 – extreme danger",
-            "Stichwort (optional, z. B. GEWITTER, STURM, HOCHWASSER)": "Keyword (optional, e.g. THUNDERSTORM, STORM, FLOOD)",
-            "Reaktion – was soll passieren?": "Reaction – what should happen?",
-            "Aktion bei Warnung (z. B. Rollladen schließen, Push senden, Szene)": "Action on warning (e.g. close shutters, send push, scene)",
-            "Entwarnung (optional)": "All-clear (optional)",
-            "Auch reagieren, wenn alle passenden Warnungen vorbei sind": "Also react when all matching warnings have ended",
-            "Aktion bei Entwarnung (z. B. Rollladen wieder öffnen)": "Action on all-clear (e.g. reopen shutters)",
-            "Condition met": "Condition met",
+            "Stichwort": "Keyword",
+            "Zielvariable": "Target variable",
+            "Wert bei Warnung": "Value on warning",
+            "Wert bei Entwarnung": "Value on all-clear",
+            "Skript (optional)": "Script (optional)",
+            "Beispiel: Kategorie „Wetter“, ab Stufe 3, Stichwort „STURM“ → Zielvariable = Rollladen-Position, Wert bei Warnung = 100 (zu), Wert bei Entwarnung = 0 (auf). Werte: Zahl (z. B. 100), true/false, ein/aus oder Text. Für Push/Szene/HTTP ein Skript wählen (Warndaten stehen in $_IPS).": "Example: category \"Weather\", from level 3, keyword \"STORM\" → target variable = shutter position, value on warning = 100 (closed), value on all-clear = 0 (open). Values: number (e.g. 100), true/false, on/off or text. For push/scene/HTTP choose a script (warning data is available in $_IPS).",
             "Last trigger": "Last trigger",
             "all-clear": "all-clear",
-            "Aktiv": "Active",
             "Keine Warnzentrale als übergeordnete Instanz verbunden": "No warning centre connected as parent instance"
         }
     }

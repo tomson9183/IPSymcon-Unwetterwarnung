@@ -21,6 +21,7 @@ class UnwetterRegenradar extends IPSModule
     {
         parent::Create();
 
+        $this->RegisterPropertyString('Bundesland', '');
         $this->RegisterPropertyString('GemeindeARS', '');
         $this->RegisterPropertyInteger('Zoom', 2); // 1=Stadt, 2=Region, 3=Land
         $this->RegisterPropertyInteger('RefreshInterval', 300); // Sekunden
@@ -53,8 +54,15 @@ class UnwetterRegenradar extends IPSModule
     public function GetConfigurationForm()
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        $form = $this->InjectGemeindeOptions($form, 'GemeindeARS');
+        $form = $this->PrepareGemeindeForm($form, 'Bundesland', 'GemeindeARS');
         return json_encode($form);
+    }
+
+    /** Wird bei Auswahl eines Bundeslandes aufgerufen und füllt die Gemeinde-Liste. */
+    public function SetLand(string $Bundesland): void
+    {
+        $this->UpdateFormField('GemeindeARS', 'options', json_encode($this->GemeindeOptionsForLand($Bundesland)));
+        $this->UpdateFormField('GemeindeARS', 'value', '');
     }
 
     public function GetVisualizationTile()

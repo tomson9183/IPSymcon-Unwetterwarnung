@@ -2,70 +2,94 @@
     "elements": [
         {
             "type": "Label",
-            "caption": "Diese Instanz reagiert auf die Warnungen ihrer übergeordneten Warnzentrale."
+            "caption": "Diese Instanz reagiert auf die Warnungen ihrer übergeordneten Warnzentrale. Lege hier beliebig viele Regeln an."
         },
         {
-            "type": "ExpansionPanel",
-            "caption": "Bedingung – wann soll reagiert werden?",
-            "expanded": true,
-            "items": [
+            "type": "List",
+            "name": "Rules",
+            "caption": "Regeln (Bedingung → Reaktion)",
+            "rowCount": 6,
+            "add": true,
+            "delete": true,
+            "columns": [
                 {
-                    "type": "Select",
-                    "name": "Category",
+                    "caption": "Aktiv",
+                    "name": "Active",
+                    "width": "55px",
+                    "add": true,
+                    "edit": { "type": "CheckBox" }
+                },
+                {
                     "caption": "Kategorie",
-                    "options": [
-                        { "caption": "Alle", "value": "any" },
-                        { "caption": "Wetter (DWD)", "value": "weather" },
-                        { "caption": "Zivilschutz", "value": "civil" },
-                        { "caption": "Hochwasser", "value": "flood" },
-                        { "caption": "Polizei", "value": "police" }
-                    ]
+                    "name": "Category",
+                    "width": "130px",
+                    "add": "any",
+                    "edit": {
+                        "type": "Select",
+                        "options": [
+                            { "caption": "Alle", "value": "any" },
+                            { "caption": "Wetter (DWD)", "value": "weather" },
+                            { "caption": "Zivilschutz", "value": "civil" },
+                            { "caption": "Hochwasser", "value": "flood" },
+                            { "caption": "Polizei", "value": "police" }
+                        ]
+                    }
                 },
                 {
-                    "type": "Select",
+                    "caption": "Ab Stufe",
                     "name": "MinSeverity",
-                    "caption": "Ab Warnstufe",
-                    "options": [
-                        { "caption": "1 – Vorinformation", "value": 1 },
-                        { "caption": "2 – Wetterwarnung", "value": 2 },
-                        { "caption": "3 – Markante Warnung", "value": 3 },
-                        { "caption": "4 – Extreme Gefahr", "value": 4 }
-                    ]
+                    "width": "140px",
+                    "add": 3,
+                    "edit": {
+                        "type": "Select",
+                        "options": [
+                            { "caption": "1 – Vorinformation", "value": 1 },
+                            { "caption": "2 – Wetterwarnung", "value": 2 },
+                            { "caption": "3 – Markante Warnung", "value": 3 },
+                            { "caption": "4 – Extreme Gefahr", "value": 4 }
+                        ]
+                    }
                 },
                 {
-                    "type": "ValidationTextBox",
+                    "caption": "Stichwort",
                     "name": "Keyword",
-                    "caption": "Stichwort (optional, z. B. GEWITTER, STURM, HOCHWASSER)"
-                }
-            ]
-        },
-        {
-            "type": "ExpansionPanel",
-            "caption": "Reaktion – was soll passieren?",
-            "expanded": true,
-            "items": [
-                {
-                    "type": "SelectAction",
-                    "name": "OnAlert",
-                    "caption": "Aktion bei Warnung (z. B. Rollladen schließen, Push senden, Szene)"
-                }
-            ]
-        },
-        {
-            "type": "ExpansionPanel",
-            "caption": "Entwarnung (optional)",
-            "items": [
-                {
-                    "type": "CheckBox",
-                    "name": "UseOnClear",
-                    "caption": "Auch reagieren, wenn alle passenden Warnungen vorbei sind"
+                    "width": "120px",
+                    "add": "",
+                    "edit": { "type": "ValidationTextBox" }
                 },
                 {
-                    "type": "SelectAction",
-                    "name": "OnClear",
-                    "caption": "Aktion bei Entwarnung (z. B. Rollladen wieder öffnen)"
+                    "caption": "Zielvariable",
+                    "name": "TargetVariable",
+                    "width": "230px",
+                    "add": 0,
+                    "edit": { "type": "SelectVariable" }
+                },
+                {
+                    "caption": "Wert bei Warnung",
+                    "name": "ValueOn",
+                    "width": "120px",
+                    "add": "",
+                    "edit": { "type": "ValidationTextBox" }
+                },
+                {
+                    "caption": "Wert bei Entwarnung",
+                    "name": "ValueOff",
+                    "width": "130px",
+                    "add": "",
+                    "edit": { "type": "ValidationTextBox" }
+                },
+                {
+                    "caption": "Skript (optional)",
+                    "name": "ScriptID",
+                    "width": "220px",
+                    "add": 0,
+                    "edit": { "type": "SelectScript" }
                 }
             ]
+        },
+        {
+            "type": "Label",
+            "caption": "Beispiel: Kategorie „Wetter“, ab Stufe 3, Stichwort „STURM“ → Zielvariable = Rollladen-Position, Wert bei Warnung = 100 (zu), Wert bei Entwarnung = 0 (auf). Werte: Zahl (z. B. 100), true/false, ein/aus oder Text. Für Push/Szene/HTTP ein Skript wählen (Warndaten stehen in $_IPS)."
         }
     ],
     "actions": [],

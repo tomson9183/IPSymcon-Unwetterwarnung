@@ -24,6 +24,7 @@ class UnwetterWarnzentrale extends IPSModule
     {
         parent::Create();
 
+        $this->RegisterPropertyString('Bundesland', '');
         $this->RegisterPropertyString('GemeindeARS', '');
         $this->RegisterPropertyBoolean('GemeindeGenau', true);
         $this->RegisterPropertyBoolean('SourceWeather', true);
@@ -89,8 +90,15 @@ class UnwetterWarnzentrale extends IPSModule
     public function GetConfigurationForm()
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        $form = $this->InjectGemeindeOptions($form, 'GemeindeARS');
+        $form = $this->PrepareGemeindeForm($form, 'Bundesland', 'GemeindeARS');
         return json_encode($form);
+    }
+
+    /** Wird bei Auswahl eines Bundeslandes aufgerufen und füllt die Gemeinde-Liste. */
+    public function SetLand(string $Bundesland): void
+    {
+        $this->UpdateFormField('GemeindeARS', 'options', json_encode($this->GemeindeOptionsForLand($Bundesland)));
+        $this->UpdateFormField('GemeindeARS', 'value', '');
     }
 
     public function RequestAction($Ident, $Value)
@@ -198,9 +206,8 @@ class UnwetterWarnzentrale extends IPSModule
 
     public function GetVisualizationTile()
     {
-        if (IPS_GetKernelRunlevel() === KR_READY) {
-            $this->Update();
-        }
+        // Bewusst KEIN Update() hier (gemeinde-genau = mehrere HTTP-Abrufe).
+        // Die Kachel zeigt den gepufferten Stand; der Timer hält ihn aktuell.
         $html = file_get_contents(__DIR__ . '/module.html');
         $data = $this->GetBuffer('TileData');
         if ($data === '') {

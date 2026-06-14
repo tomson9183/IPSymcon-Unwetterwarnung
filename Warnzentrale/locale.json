@@ -20,6 +20,7 @@
             "Warning": "Warnung"
         },
         "en": {
+            "Bundesland": "Federal state",
             "Gemeinde": "Municipality",
             "Gemeinde-genau filtern (Punkt-in-Polygon gegen die Warngebiete)": "Filter by municipality (point-in-polygon against the warning areas)",
             "Warnquellen": "Warning sources",

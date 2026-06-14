@@ -2,6 +2,13 @@
     "elements": [
         {
             "type": "Select",
+            "name": "Bundesland",
+            "caption": "Bundesland",
+            "options": [],
+            "onChange": "UWR_SetLand($id, $Bundesland);"
+        },
+        {
+            "type": "Select",
             "name": "GemeindeARS",
             "caption": "Gemeinde (Kartenmitte)",
             "options": []

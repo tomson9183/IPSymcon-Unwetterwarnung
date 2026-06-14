@@ -2,7 +2,7 @@
     "elements": [
         {
             "type": "Label",
-            "caption": "🌧️ REGENRADAR – Karte (OpenStreetMap, mit Orten) zentriert auf deine Gemeinde mit animiertem Regenradar (Verlauf der letzten ~2 h). (Diese Instanz erzeugt KEINE Warnungen – dafür ist die „Warnzentrale“ zuständig.)"
+            "caption": "🌧️ REGENRADAR – DWD-Niederschlagsradar als Kachel, zentriert auf deine Gemeinde (roter Punkt). Die Bilder werden vom Symcon-Server geladen und eingebettet – das Anzeigegerät braucht KEINEN externen Internetzugriff. (Diese Instanz erzeugt KEINE Warnungen – dafür ist die „Warnzentrale“ zuständig.)"
         },
         {
             "type": "ValidationTextBox",
@@ -28,29 +28,44 @@
             "name": "Zoom",
             "caption": "Kartenausschnitt",
             "options": [
-                { "caption": "Ortsteil / Stadt (nah)", "value": 13 },
-                { "caption": "Gemeinde + Nachbarorte", "value": 11 },
-                { "caption": "Region (weit)", "value": 9 }
+                { "caption": "Stadt (nah)", "value": 1 },
+                { "caption": "Region", "value": 2 },
+                { "caption": "Bundesland (weit)", "value": 3 }
             ]
         },
         {
             "type": "NumberSpinner",
+            "name": "Frames",
+            "caption": "Animation: Anzahl Zeitschritte (à 5 min)",
+            "minimum": 1,
+            "maximum": 16
+        },
+        {
+            "type": "NumberSpinner",
             "name": "PlayDuration",
-            "caption": "Abspieldauer der Animation je Klick (Sekunden)",
+            "caption": "Abspieldauer je Klick (Sekunden)",
             "minimum": 5,
             "maximum": 600,
             "suffix": "s"
         },
         {
+            "type": "NumberSpinner",
+            "name": "RefreshInterval",
+            "caption": "Bilder neu laden alle (Sekunden)",
+            "minimum": 120,
+            "maximum": 3600,
+            "suffix": "s"
+        },
+        {
             "type": "Label",
-            "caption": "Die Animation läuft nur, wenn der ▶-Knopf in der Kachel gedrückt wird (für die hier eingestellte Dauer), und stoppt dann wieder. Karte: © OpenStreetMap-Mitwirkende. Radar: RainViewer (u. a. auf Basis von DWD-Radardaten). Karte und Radar werden direkt im Browser geladen – kein Login nötig."
+            "caption": "Die Animation läuft nur, wenn der ▶-Knopf in der Kachel gedrückt wird (für die eingestellte Dauer), und stoppt dann wieder. Quelle: offener DWD-GeoServer (maps.dwd.de) – kein Login nötig."
         }
     ],
     "actions": [
         {
             "type": "Button",
-            "caption": "🔄 Vorschau aktualisieren",
-            "onClick": "UWR_Reload($id);"
+            "caption": "🔄 Radar jetzt laden / testen",
+            "onClick": "UWR_RefreshTest($id);"
         }
     ],
     "status": [

@@ -2,34 +2,34 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        html, body { margin:0; padding:0; overflow:hidden; background:#aadaff;
+        html, body { margin:0; padding:0; overflow:hidden; background:#eaf1f5;
             font-family:-apple-system,"Segoe UI",Roboto,sans-serif; }
-        /* WICHTIG: im Fluss (kein position:absolute am Wurzelelement), damit die Kachel
-           ihre Hoehe bekommt. Hoehe wird per JS aus der Breite abgeleitet. */
-        #map { position:relative; width:100%; height:240px; background:#aadaff; }
-        #bar { position:absolute; left:0; right:0; top:0; z-index:600; display:flex; align-items:center; gap:8px;
-            padding:6px 10px; background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0));
-            color:#fff; font-size:13px; pointer-events:none; }
+        /* Bild im Fluss (width:100%, Hoehe automatisch) -> Kachel bekommt zuverlaessig Hoehe. */
+        #wrap { position:relative; width:100%; line-height:0; }
+        #img { width:100%; height:auto; display:block; }
+        #bar { position:absolute; left:0; right:0; top:0; z-index:6; display:flex; align-items:center; gap:8px;
+            padding:6px 10px; line-height:1.2;
+            background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0)); color:#fff; font-size:13px; pointer-events:none; }
         #bar .t { font-weight:800; } #bar .p { font-weight:600; opacity:.95; }
         #clock { margin-left:auto; font-weight:800; font-variant-numeric:tabular-nums;
-            background:rgba(0,0,0,.45); padding:2px 8px; border-radius:8px; min-height:18px; }
-        #play { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); z-index:650;
-            border:0; border-radius:22px; padding:9px 18px; font-size:14px; font-weight:800; cursor:pointer;
-            color:#fff; background:linear-gradient(135deg,#2980b9,#4aa3ff); box-shadow:0 2px 8px rgba(0,0,0,.35); }
-        #play:active { transform:translateX(-50%) scale(.96); }
-        #legend { position:absolute; left:8px; bottom:54px; z-index:600; background:rgba(0,0,0,.5); color:#fff;
+            background:rgba(0,0,0,.45); padding:2px 8px; border-radius:8px; }
+        #marker { position:absolute; left:50%; top:50%; width:14px; height:14px; transform:translate(-50%,-50%); z-index:5;
+            border:3px solid #e74c3c; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,.85); pointer-events:none; }
+        #legend { position:absolute; left:8px; bottom:46px; z-index:6; background:rgba(0,0,0,.5); color:#fff;
             border-radius:6px; padding:4px 7px; font-size:9px; line-height:1.6; pointer-events:none; }
         #legend i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:3px; vertical-align:-1px; }
-        #hint { position:absolute; inset:0; z-index:700; display:none; align-items:center; justify-content:center;
-            text-align:center; color:#445; background:#eef3f7; padding:24px; }
-        .leaflet-control-attribution { font-size:8px; }
+        #play { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); z-index:7;
+            border:0; border-radius:22px; padding:8px 18px; font-size:14px; font-weight:800; cursor:pointer; line-height:1.2;
+            color:#fff; background:linear-gradient(135deg,#2980b9,#4aa3ff); box-shadow:0 2px 8px rgba(0,0,0,.35); }
+        #play:active { transform:translateX(-50%) scale(.96); }
+        #hint { padding:30px 16px; text-align:center; color:#445; line-height:1.4; }
     </style>
 </head>
 <body>
-    <div id="map">
+    <div id="wrap">
+        <img id="img" alt="">
+        <div id="marker"></div>
         <div id="bar"><span class="t">🌧️ Regenradar</span><span class="p" id="place"></span><span id="clock"></span></div>
         <div id="legend">
             <span><i style="background:#88c0ff"></i>leicht</span>
@@ -38,75 +38,27 @@
             <span><i style="background:#e60000"></i>heftig</span>
         </div>
         <button id="play" onclick="onPlay()">▶ Verlauf abspielen</button>
-        <div id="hint">Bitte in der Konfiguration eine Gemeinde wählen.</div>
     </div>
+    <div id="hint" style="display:none;"></div>
 
     <script>
-        var CFG = null, map = null, marker = null, layers = [], anim = null, stopT = null, playing = false;
-        var mapEl = document.getElementById('map');
-
-        // Kachel-Hoehe aus der Breite ableiten (Symcon-Kacheln sind breitengetrieben) -> im Fluss sichtbar.
-        function sizeMap() {
-            var w = window.innerWidth || document.documentElement.clientWidth || mapEl.offsetWidth || 320;
-            var h = Math.max(160, Math.round(w * 0.72));
-            if (mapEl.style.height !== h + 'px') { mapEl.style.height = h + 'px'; }
-            if (map) { map.invalidateSize(false); }
-        }
-
-        function initMap(lat, lon, zoom) {
-            sizeMap();
-            map = L.map('map', { zoomControl: true, attributionControl: true }).setView([lat, lon], zoom);
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
-            marker = L.circleMarker([lat, lon], { radius: 7, color: '#e74c3c', weight: 3, fillColor: '#e74c3c', fillOpacity: .4 }).addTo(map);
-            if (window.ResizeObserver) { new ResizeObserver(sizeMap).observe(document.documentElement); }
-            [80, 250, 600, 1200, 2000].forEach(function (ms) { setTimeout(sizeMap, ms); });
-            loadRadar(false);
-        }
-
-        function clearLayers() {
-            if (anim) { clearInterval(anim); anim = null; }
-            layers.forEach(function (o) { map.removeLayer(o.layer); });
-            layers = [];
-        }
+        var CFG = null, frames = [], idx = 0, anim = null, stopT = null, playing = false;
 
         function setFrame(i) {
-            layers.forEach(function (o, j) { o.layer.setOpacity(j === i ? 0.72 : 0); });
-            var fr = layers[i];
-            if (fr) {
-                var t = new Date(fr.time * 1000);
-                document.getElementById('clock').textContent =
-                    t.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + (fr.forecast ? ' ⏩' : '');
-            }
-        }
-
-        function loadRadar(autoplay) {
-            fetch('https://api.rainviewer.com/public/weather-maps.json')
-                .then(function (r) { return r.json(); })
-                .then(function (api) {
-                    clearLayers();
-                    var host = api.host;
-                    var past = (api.radar && api.radar.past) || [];
-                    var now = (api.radar && api.radar.nowcast) || [];
-                    var frames = past.concat(now);
-                    frames.forEach(function (f, j) {
-                        var layer = L.tileLayer(host + f.path + '/256/{z}/{x}/{y}/2/1_1.png', { opacity: 0, zIndex: 400 + j });
-                        layer.addTo(map);
-                        layers.push({ layer: layer, time: f.time, forecast: j >= past.length });
-                    });
-                    if (layers.length) { setFrame(layers.length - 1); }
-                    if (autoplay) { play(); }
-                })
-                .catch(function () {});
+            if (!frames.length) { return; }
+            idx = (i + frames.length) % frames.length;
+            document.getElementById('img').src = frames[idx].img;
+            document.getElementById('clock').textContent = frames[idx].label || '';
         }
 
         function play() {
-            if (!layers.length) { return; }
+            if (frames.length < 2) { return; }
             if (anim) { clearInterval(anim); }
             if (stopT) { clearTimeout(stopT); }
             playing = true;
             document.getElementById('play').textContent = '⏸ läuft …';
             var i = 0;
-            anim = setInterval(function () { setFrame(i); i = (i + 1) % layers.length; }, 600);
+            anim = setInterval(function () { setFrame(i); i = (i + 1) % frames.length; }, 600);
             var dur = (CFG && CFG.play ? CFG.play : 30) * 1000;
             stopT = setTimeout(stop, dur);
         }
@@ -116,32 +68,35 @@
             if (stopT) { clearTimeout(stopT); stopT = null; }
             playing = false;
             document.getElementById('play').textContent = '▶ Verlauf abspielen';
-            if (layers.length) { setFrame(layers.length - 1); }
+            setFrame(frames.length - 1); // neuestes Bild
         }
 
-        function onPlay() {
-            if (playing) { stop(); return; }
-            if (map) { loadRadar(true); }
-        }
+        function onPlay() { if (playing) { stop(); } else { play(); } }
 
         function render(data) {
             if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { return; } }
             if (!data) { return; }
             CFG = data;
-            var ok = data.configured && data.lat && data.lon;
-            document.getElementById('hint').style.display = ok ? 'none' : 'flex';
-            document.getElementById('play').style.display = ok ? 'block' : 'none';
+            frames = data.frames || [];
             document.getElementById('place').textContent = data.place || '';
-            if (!ok) { return; }
-            var zoom = data.zoom || 11;
-            if (!map) { initMap(data.lat, data.lon, zoom); }
-            else { map.setView([data.lat, data.lon], zoom); marker.setLatLng([data.lat, data.lon]); sizeMap(); }
+
+            var ok = data.configured && frames.length > 0;
+            document.getElementById('wrap').style.display = ok ? 'block' : 'none';
+            var hint = document.getElementById('hint');
+            hint.style.display = ok ? 'none' : 'block';
+            hint.textContent = data.configured
+                ? 'Radarbilder werden geladen … Falls dauerhaft leer: Konfiguration öffnen und „Radar jetzt laden / testen“ drücken.'
+                : 'Bitte in der Konfiguration eine Gemeinde wählen.';
+
+            if (ok) {
+                document.getElementById('play').style.display = (frames.length > 1) ? 'block' : 'none';
+                stop(); // zeigt neuestes Bild
+            }
         }
 
         function handleMessage(data) { render(data); }
 
-        window.addEventListener('resize', sizeMap);
-        window.addEventListener('load', function () { sizeMap(); render(/*INITIAL_DATA*/null); [150, 500, 1200].forEach(function (ms) { setTimeout(sizeMap, ms); }); });
+        window.addEventListener('load', function () { render(/*INITIAL_DATA*/null); });
     </script>
 </body>
 </html>

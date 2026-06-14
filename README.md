@@ -20,19 +20,21 @@ in den Apps **NINA**, **KATWARN** und **DWD WarnWetter** erscheinen:
 
 ## Aufbau: drei Modultypen, sehr übersichtlich
 
+Genau **drei** Instanzen – jede mit klarer Aufgabe:
+
 ```
-🛡️  Warnzentrale            (1×)  – Gemeinde wählen, zeigt ALLE Warnungen + Warn-Kachel
-     └── ⚡ Unwetter Aktion  (n×)  – „was passiert wie“: Bedingung → Reaktion
-🌧️  Regenradar              (1×)  – DWD-Niederschlagsradar als eigene Kachel
+🛡️  Warnzentrale     (1×)  – Gemeinde wählen, zeigt ALLE Warnungen + Warn-Kachel
+⚡  Unwetter Aktionen (1×)  – „was passiert wie“: Tabelle aus Regeln (Bedingung → Reaktion)
+🌧️  Regenradar        (1×)  – DWD-Niederschlagsradar als eigene Kachel
 ```
 
 - **🛡️ Warnzentrale** – die zentrale Daten-Instanz. Hier wählst du **eine Gemeinde**
   und siehst **alle** Warnungen (gemeinde-genau gefiltert) als Status-Variablen und in
   einer **Kachel**.
-- **⚡ Unwetter Aktion** – beliebig viele Instanzen, die **unterhalb** der Warnzentrale
-  hängen. Jede ist genau eine Regel: **Bedingung** (Kategorie + ab Warnstufe + optional
-  Stichwort) → **Reaktion** (frei wählbare Symcon-Aktion). Eigene Namen wie
-  *„Rollläden zu bei Sturm“* oder *„Push bei extremem Gewitter“*.
+- **⚡ Unwetter Aktionen** – **eine** Instanz mit einer **Regel-Tabelle**. Jede Zeile:
+  **Bedingung** (Kategorie + ab Warnstufe + optional Stichwort) → **Reaktion**
+  (Zielvariable auf einen Wert setzen, z. B. Rollladen = 100, und/oder Skript), optional
+  ein Wert bei Entwarnung. Die Instanz wählt ihre Warnzentrale per Auswahlfeld.
 - **🌧️ Regenradar** – zeigt das DWD-Niederschlagsradar zentriert auf eine Gemeinde,
   aktualisiert sich automatisch.
 
@@ -51,18 +53,17 @@ in den Apps **NINA**, **KATWARN** und **DWD WarnWetter** erscheinen:
 - *Gemeinde-genau filtern* (Standard an): nur Warnungen, deren Warngebiet die Gemeinde
   tatsächlich abdeckt (Punkt-in-Polygon gegen die amtliche Geometrie).
 
-### 2. Aktionen (optional, beliebig viele)
-- **Unterhalb** der Warnzentrale eine Instanz **„Unwetter Aktion“** anlegen.
-- **Bedingung** wählen: Kategorie, ab Warnstufe (z. B. 4 = extrem), optional Stichwort
-  (z. B. `GEWITTER`).
-- **Reaktion** über die Symcon-Aktionsauswahl festlegen – z. B.:
-  - Rollladen-/Geräte-Variable schalten (Position 100 % = zu)
-  - Szene aktivieren
-  - Push-/WebFront-Benachrichtigung senden
-  - HTTP-Request auslösen
-  - Skript ausführen
-- Optional: **Entwarnung** – eine zweite Aktion, wenn alle passenden Warnungen vorbei
-  sind (z. B. Rollläden wieder öffnen).
+### 2. Aktionen (optional)
+- Eine Instanz **„Unwetter Aktionen“** anlegen und oben die **Warnzentrale** auswählen
+  (ist nur eine vorhanden, wird sie automatisch vorbelegt).
+- In der **Regel-Tabelle** beliebig viele Zeilen anlegen. Pro Zeile:
+  - **Bedingung:** Kategorie, ab Warnstufe (z. B. 4 = extrem), optional Stichwort
+    (z. B. `GEWITTER`).
+  - **Reaktion:** **Zielvariable** wählen (z. B. die Rollladen-Position) und
+    **Wert bei Warnung** (z. B. `100` = zu) sowie optional **Wert bei Entwarnung**
+    (z. B. `0` = auf). Werte: Zahl, `true`/`false`, `ein`/`aus` oder Text.
+  - Für Push/Szene/HTTP zusätzlich ein **Skript** wählen (Warndaten stehen in `$_IPS`).
+- Reaktionen feuern flankengesteuert: bei Eintritt der Warnung bzw. bei Entwarnung.
 
 ### 3. Regenradar (optional)
 - Instanz **„Regenradar“** anlegen, Gemeinde + Kartenausschnitt wählen. Fertig.

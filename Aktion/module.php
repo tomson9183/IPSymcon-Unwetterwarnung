@@ -121,23 +121,28 @@ class UnwetterAktion extends IPSModule
             'any' => 'All', 'weather' => 'Weather', 'civil' => 'Civil protection',
             'flood' => 'Flood', 'police' => 'Police',
         ];
+        $state = json_decode($this->GetBuffer('RuleState'), true);
+        if (!is_array($state)) {
+            $state = [];
+        }
         $list = [];
-        foreach ($rules as $r) {
+        foreach ($rules as $i => $r) {
             if (!($r['Active'] ?? true)) {
                 continue;
             }
-            $tv   = (int) ($r['TargetVariable'] ?? 0);
-            $name = ($tv > 0 && @IPS_VariableExists($tv)) ? IPS_GetName($tv) : '';
+            $tv     = (int) ($r['TargetVariable'] ?? 0);
+            $exists = $tv > 0 && @IPS_VariableExists($tv);
             $list[] = [
-                'cat'    => $this->Translate($catLabel[$r['Category'] ?? 'any'] ?? 'All'),
-                'sev'    => (int) ($r['MinSeverity'] ?? 1),
-                'target' => $name,
-                'on'     => (string) ($r['ValueOn'] ?? ''),
-                'off'    => (string) ($r['ValueOff'] ?? ''),
+                'cat'       => $this->Translate($catLabel[$r['Category'] ?? 'any'] ?? 'All'),
+                'sev'       => (int) ($r['MinSeverity'] ?? 1),
+                'target'    => $exists ? IPS_GetName($tv) : '',
+                'on'        => (string) ($r['ValueOn'] ?? ''),
+                'off'       => (string) ($r['ValueOff'] ?? ''),
+                'triggered' => (bool) ($state[$i] ?? false),
+                'cur'       => $exists ? $this->ValToStr(GetValue($tv)) : '',
             ];
         }
-        $state = json_decode($this->GetBuffer('RuleState'), true);
-        $cond  = is_array($state) ? in_array(true, array_map('boolval', $state), true) : false;
+        $cond = in_array(true, array_map('boolval', $state), true);
 
         return json_encode([
             'condition' => $cond,
@@ -159,7 +164,7 @@ class UnwetterAktion extends IPSModule
             return;
         }
         $n = 0;
-        foreach ($rules as $rule) {
+        foreach ($rules as $i => $rule) {
             if (!($rule['Active'] ?? true)) {
                 continue;
             }
@@ -171,7 +176,7 @@ class UnwetterAktion extends IPSModule
                 'category' => $cat === 'any' ? 'weather' : $cat,
                 'severity' => max(1, (int) ($rule['MinSeverity'] ?? 4)),
             ];
-            $this->FireAlert($rule, $fake);
+            $this->FireAlert($i, $rule, $fake);
             $n++;
         }
         $this->PushVisu();
@@ -186,11 +191,11 @@ class UnwetterAktion extends IPSModule
             $rules = [];
         }
         $n = 0;
-        foreach ($rules as $rule) {
+        foreach ($rules as $i => $rule) {
             if (!($rule['Active'] ?? true)) {
                 continue;
             }
-            $this->FireClear($rule);
+            $this->FireClear($i, $rule);
             $n++;
         }
         // Zustände zurücksetzen, damit die nächste echte Warnung wieder auslöst.
@@ -268,9 +273,9 @@ class UnwetterAktion extends IPSModule
             $wasOn = (bool) ($state[$i] ?? false);
 
             if ($isOn && !$wasOn) {
-                $this->FireAlert($rule, $match);
+                $this->FireAlert($i, $rule, $match);
             } elseif (!$isOn && $wasOn) {
-                $this->FireClear($rule);
+                $this->FireClear($i, $rule);
             }
 
             $newState[$i] = $isOn;
@@ -281,43 +286,60 @@ class UnwetterAktion extends IPSModule
     }
 
     /** Reaktion, wenn die Bedingung neu erfüllt ist. */
-    private function FireAlert(array $rule, array $w): void
+    private function FireAlert(int $index, array $rule, array $w): void
     {
         $varID = (int) ($rule['TargetVariable'] ?? 0);
         $valOn = (string) ($rule['ValueOn'] ?? '');
-        if ($varID > 0 && $valOn !== '' && @IPS_VariableExists($varID)) {
-            @RequestAction($varID, $this->Coerce($valOn));
+        if ($varID > 0 && @IPS_VariableExists($varID)) {
+            // Zustand VOR der Warnung merken (für die Wiederherstellung bei Entwarnung).
+            $pre = $this->GetPreState();
+            $pre[(string) $index] = GetValue($varID);
+            $this->SetPreState($pre);
+
+            if ($valOn !== '') {
+                @RequestAction($varID, $this->Coerce($valOn));
+            }
         }
 
         $scriptID = (int) ($rule['ScriptID'] ?? 0);
         if ($scriptID > 0 && @IPS_ScriptExists($scriptID)) {
             @IPS_RunScriptEx($scriptID, [
-                'SENDER'       => 'Unwetterwarnung',
-                'INSTANCE'     => $this->InstanceID,
-                'EVENT'        => 'alert',
-                'WarnID'       => (string) ($w['id'] ?? ''),
-                'Headline'     => (string) ($w['headline'] ?? ''),
-                'Provider'     => (string) ($w['provider'] ?? ''),
-                'Category'     => (string) ($w['category'] ?? ''),
-                'Severity'     => (int) ($w['severity'] ?? 0),
+                'SENDER'   => 'Unwetterwarnung',
+                'INSTANCE' => $this->InstanceID,
+                'EVENT'    => 'alert',
+                'WarnID'   => (string) ($w['id'] ?? ''),
+                'Headline' => (string) ($w['headline'] ?? ''),
+                'Provider' => (string) ($w['provider'] ?? ''),
+                'Category' => (string) ($w['category'] ?? ''),
+                'Severity' => (int) ($w['severity'] ?? 0),
             ]);
         }
 
-        $this->SetValue('Letzte', date('d.m.Y H:i') . ' – ' . (string) ($w['headline'] ?? ''));
+        $this->SetValue('Letzte', date('d.m.Y H:i') . ' – ' . $this->Translate('Warning') . ': ' . (string) ($w['headline'] ?? ''));
         $this->LogMessage('Aktion ausgelöst: ' . (string) ($w['headline'] ?? ''), KL_NOTIFY);
     }
 
-    /** Reaktion bei Entwarnung (keine passende Warnung mehr). */
-    private function FireClear(array $rule): void
+    /** Reaktion bei Entwarnung: vorherigen Zustand wiederherstellen (oder fester Wert). */
+    private function FireClear(int $index, array $rule): void
     {
         $varID  = (int) ($rule['TargetVariable'] ?? 0);
         $valOff = (string) ($rule['ValueOff'] ?? '');
-        if ($varID > 0 && $valOff !== '' && @IPS_VariableExists($varID)) {
-            @RequestAction($varID, $this->Coerce($valOff));
+        $pre    = $this->GetPreState();
+
+        if ($varID > 0 && @IPS_VariableExists($varID)) {
+            if ($valOff !== '') {
+                // expliziter Wert bei Entwarnung
+                @RequestAction($varID, $this->Coerce($valOff));
+            } elseif (array_key_exists((string) $index, $pre)) {
+                // Standard: zurück in den Zustand VOR der Warnung
+                @RequestAction($varID, $pre[(string) $index]);
+            }
         }
+        unset($pre[(string) $index]);
+        $this->SetPreState($pre);
 
         $scriptID = (int) ($rule['ScriptID'] ?? 0);
-        if ($scriptID > 0 && (string) ($rule['ValueOff'] ?? '') !== '' && @IPS_ScriptExists($scriptID)) {
+        if ($scriptID > 0 && @IPS_ScriptExists($scriptID)) {
             @IPS_RunScriptEx($scriptID, [
                 'SENDER'   => 'Unwetterwarnung',
                 'INSTANCE' => $this->InstanceID,
@@ -326,6 +348,26 @@ class UnwetterAktion extends IPSModule
         }
 
         $this->SetValue('Letzte', date('d.m.Y H:i') . ' – ' . $this->Translate('all-clear'));
+    }
+
+    private function GetPreState(): array
+    {
+        $p = json_decode($this->GetBuffer('PreState'), true);
+        return is_array($p) ? $p : [];
+    }
+
+    private function SetPreState(array $p): void
+    {
+        $this->SetBuffer('PreState', json_encode($p));
+    }
+
+    /** Wert für die Kachel-Anzeige als Text. */
+    private function ValToStr($v): string
+    {
+        if (is_bool($v)) {
+            return $v ? $this->Translate('on') : $this->Translate('off');
+        }
+        return (string) $v;
     }
 
     /** Wandelt den Text-Wert in den passenden Typ (bool / int / float / string). */

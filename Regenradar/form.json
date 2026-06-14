@@ -2,7 +2,7 @@
     "elements": [
         {
             "type": "Label",
-            "caption": "🌧️ REGENRADAR – zeigt das DWD-Niederschlagsradar als Kachel, zentriert auf deine Gemeinde. (Diese Instanz erzeugt KEINE Warnungen – dafür ist die „Warnzentrale“ zuständig.)"
+            "caption": "🌧️ REGENRADAR – Karte (OpenStreetMap, mit Orten) zentriert auf deine Gemeinde mit animiertem Regenradar (Verlauf der letzten ~2 h). (Diese Instanz erzeugt KEINE Warnungen – dafür ist die „Warnzentrale“ zuständig.)"
         },
         {
             "type": "ValidationTextBox",
@@ -28,36 +28,21 @@
             "name": "Zoom",
             "caption": "Kartenausschnitt",
             "options": [
-                { "caption": "Stadt (nah)", "value": 1 },
-                { "caption": "Region", "value": 2 },
-                { "caption": "Bundesland (weit)", "value": 3 }
+                { "caption": "Ortsteil / Stadt (nah)", "value": 13 },
+                { "caption": "Gemeinde + Nachbarorte", "value": 11 },
+                { "caption": "Region (weit)", "value": 9 }
             ]
         },
         {
-            "type": "NumberSpinner",
-            "name": "Frames",
-            "caption": "Animation: Anzahl Zeitschritte (à 5 min)",
-            "minimum": 1,
-            "maximum": 24
-        },
-        {
-            "type": "NumberSpinner",
-            "name": "RefreshInterval",
-            "caption": "Aktualisierung der Zeitschritte (Sekunden)",
-            "minimum": 60,
-            "maximum": 3600,
-            "suffix": "s"
-        },
-        {
             "type": "Label",
-            "caption": "Quelle: offener DWD-GeoServer (maps.dwd.de) – kein Login nötig. Das Niederschlagsradar wird vom DWD ca. alle 5 Minuten aktualisiert."
+            "caption": "Karte: © OpenStreetMap-Mitwirkende. Radar: RainViewer (u. a. auf Basis von DWD-Radardaten). Karte und Radar werden direkt im Browser geladen – kein Login nötig."
         }
     ],
     "actions": [
         {
             "type": "Button",
-            "caption": "🔄 Radar jetzt laden / testen",
-            "onClick": "UWR_RefreshTest($id);"
+            "caption": "🔄 Vorschau aktualisieren",
+            "onClick": "UWR_Reload($id);"
         }
     ],
     "status": [

@@ -78,9 +78,9 @@
                     "edit": { "type": "ValidationTextBox" }
                 },
                 {
-                    "caption": "Wert bei Entwarnung",
+                    "caption": "Wert bei Entwarnung (leer = vorheriger Zustand)",
                     "name": "ValueOff",
-                    "width": "130px",
+                    "width": "230px",
                     "add": "",
                     "edit": { "type": "ValidationTextBox" }
                 },
@@ -95,7 +95,7 @@
         },
         {
             "type": "Label",
-            "caption": "Beispiel: Kategorie „Wetter“, ab Stufe 3, Stichwort „STURM“ → Zielvariable = Rollladen-Position, Wert bei Warnung = 100 (zu), Wert bei Entwarnung = 0 (auf). Werte: Zahl (z. B. 100), true/false, ein/aus oder Text. Für Push/Szene/HTTP ein Skript wählen (Warndaten stehen in $_IPS)."
+            "caption": "Beispiel Rollladen: Kategorie „Wetter“, ab Stufe 3, Stichwort „STURM“ → Zielvariable = Rollladen-Position, Wert bei Warnung = 100 (zu). „Wert bei Entwarnung“ LEER lassen → der Rollladen kehrt nach der Entwarnung automatisch in den Zustand VOR der Warnung zurück (oder festen Wert eintragen, z. B. 0). Werte: Zahl, true/false, ein/aus oder Text. Für Push/Szene/HTTP ein Skript wählen (Warndaten in $_IPS)."
         }
     ],
     "actions": [

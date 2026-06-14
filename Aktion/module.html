@@ -86,8 +86,15 @@
             rules.forEach(function(r){
                 var d=document.createElement('div'); d.className='r';
                 var sev='<span class="sev" style="background:'+(SEVCOL[r.sev]||'#888')+'">'+r.sev+'</span>';
-                var react = r.target ? (esc(r.target)+' → '+esc(r.on)+(r.off!==''?(' / '+esc(r.off)):'')) : 'Skript / —';
-                d.innerHTML='<div class="a">'+sev+esc(r.cat)+'</div><div class="b">'+react+'</div>';
+                var st = r.triggered
+                    ? '<span style="color:#e74c3c;font-weight:700">🔴 ausgelöst</span>'
+                    : '<span style="color:#2ecc71;font-weight:700">🟢 normal</span>';
+                var offTxt = (r.off !== '' ? r.off : 'zurück');
+                var react = r.target ? (esc(r.target)+' → '+esc(r.on)+' / '+esc(offTxt)) : 'Skript';
+                var cur = r.target ? ('<span style="float:right">'+esc(r.target)+' = '+esc(r.cur)+'</span>') : '';
+                d.innerHTML = '<div class="a">'+sev+esc(r.cat)+' <span style="float:right">'+st+'</span></div>'
+                    + '<div class="b">'+react+'</div>'
+                    + '<div class="b">'+cur+'</div>';
                 box.appendChild(d);
             });
             fit();

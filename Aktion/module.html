@@ -11,7 +11,8 @@
         html, body { margin:0; padding:0; height:100%; overflow:hidden; }
         body { text-align:center; font-family:-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--txt); }
         #box { position:relative; width:100%; height:100vh; overflow:hidden; }
-        #card { position:absolute; left:50%; top:50%; transform-origin:center center; width:330px; padding:12px; text-align:left; }
+        #card { position:absolute; left:50%; top:50%; transform-origin:center center; width:330px; padding:12px; text-align:left;
+            will-change:transform; backface-visibility:hidden; }
         #head { display:flex; align-items:center; gap:10px; }
         #head .t { font-size:16px; font-weight:800; flex:1; }
         #dot { width:14px; height:14px; border-radius:50%; background:#2ecc71; box-shadow:0 0 8px rgba(0,0,0,.25); }
@@ -57,13 +58,18 @@
 
         function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-        function fit() {
+        var lastS = -1, rafPending = false;
+        function doFit() {
+            rafPending = false;
             var card=document.getElementById('card');
             var w=window.innerWidth, h=window.innerHeight, cw=card.offsetWidth, ch=card.offsetHeight;
             if(!cw||!ch) return;
             var s=Math.min(w/cw, h/ch);
+            if (Math.abs(s - lastS) < 0.002) { return; } // unveraendert -> nicht neu zeichnen (kein Flackern)
+            lastS = s;
             card.style.transform='translate(-50%,-50%) scale('+s+')';
         }
+        function fit() { if (rafPending) { return; } rafPending = true; requestAnimationFrame(doFit); }
 
         function trigger(ident, btn) {
             document.getElementById('toast').textContent = (ident==='Test' ? '🔔 Warnung simuliert …' : '✅ Entwarnung simuliert …');
@@ -89,12 +95,12 @@
                 var st = r.triggered
                     ? '<span style="color:#e74c3c;font-weight:700">🔴 ausgelöst</span>'
                     : '<span style="color:#2ecc71;font-weight:700">🟢 normal</span>';
-                var offTxt = (r.off !== '' ? r.off : 'zurück');
-                var react = r.target ? (esc(r.target)+' → '+esc(r.on)+' / '+esc(offTxt)) : 'Skript';
-                var cur = r.target ? ('<span style="float:right">'+esc(r.target)+' = '+esc(r.cur)+'</span>') : '';
+                // Zustand direkt aus der Zielgeräte-Instanz (formatiert, z. B. "zu"/"auf"/"100 %").
+                var state = r.target
+                    ? (esc(r.target) + ': <b>' + esc(r.cur || '–') + '</b>')
+                    : '<i>Skript-Aktion</i>';
                 d.innerHTML = '<div class="a">'+sev+esc(r.cat)+' <span style="float:right">'+st+'</span></div>'
-                    + '<div class="b">'+react+'</div>'
-                    + '<div class="b">'+cur+'</div>';
+                    + '<div class="b">'+state+'</div>';
                 box.appendChild(d);
             });
             fit();
@@ -103,6 +109,7 @@
         function handleMessage(data){ render(data); }
 
         window.addEventListener('resize', fit);
+        if (window.ResizeObserver) { new ResizeObserver(fit).observe(document.documentElement); }
         window.addEventListener('load', function(){ fit(); setTimeout(fit,80); setTimeout(fit,300); });
 
         render(/*INITIAL_DATA*/null);

@@ -34,8 +34,16 @@
             ]
         },
         {
+            "type": "NumberSpinner",
+            "name": "PlayDuration",
+            "caption": "Abspieldauer der Animation je Klick (Sekunden)",
+            "minimum": 5,
+            "maximum": 600,
+            "suffix": "s"
+        },
+        {
             "type": "Label",
-            "caption": "Karte: © OpenStreetMap-Mitwirkende. Radar: RainViewer (u. a. auf Basis von DWD-Radardaten). Karte und Radar werden direkt im Browser geladen – kein Login nötig."
+            "caption": "Die Animation läuft nur, wenn der ▶-Knopf in der Kachel gedrückt wird (für die hier eingestellte Dauer), und stoppt dann wieder. Karte: © OpenStreetMap-Mitwirkende. Radar: RainViewer (u. a. auf Basis von DWD-Radardaten). Karte und Radar werden direkt im Browser geladen – kein Login nötig."
         }
     ],
     "actions": [

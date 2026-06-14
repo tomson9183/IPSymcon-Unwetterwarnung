@@ -18,6 +18,8 @@
             "Gemeinde + Nachbarorte": "Municipality + neighbours",
             "Region (weit)": "Region (wide)",
             "Karte: © OpenStreetMap-Mitwirkende. Radar: RainViewer (u. a. auf Basis von DWD-Radardaten). Karte und Radar werden direkt im Browser geladen – kein Login nötig.": "Map: © OpenStreetMap contributors. Radar: RainViewer (based on DWD radar data among others). Map and radar load directly in the browser – no login required.",
+            "Abspieldauer der Animation je Klick (Sekunden)": "Animation play duration per click (seconds)",
+            "Die Animation läuft nur, wenn der ▶-Knopf in der Kachel gedrückt wird (für die hier eingestellte Dauer), und stoppt dann wieder. Karte: © OpenStreetMap-Mitwirkende. Radar: RainViewer (u. a. auf Basis von DWD-Radardaten). Karte und Radar werden direkt im Browser geladen – kein Login nötig.": "The animation only runs while the ▶ button in the tile is pressed (for the duration set here) and then stops. Map: © OpenStreetMap contributors. Radar: RainViewer (based on DWD radar data among others). Map and radar load directly in the browser – no login required.",
             "🔄 Vorschau aktualisieren": "🔄 Refresh preview",
             "Please select…": "Please select…",
             "Please type at least 2 characters…": "Please type at least 2 characters…",

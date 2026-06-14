@@ -139,7 +139,7 @@ class UnwetterAktion extends IPSModule
                 'on'        => (string) ($r['ValueOn'] ?? ''),
                 'off'       => (string) ($r['ValueOff'] ?? ''),
                 'triggered' => (bool) ($state[$i] ?? false),
-                'cur'       => $exists ? $this->ValToStr(GetValue($tv)) : '',
+                'cur'       => $exists ? (string) @GetValueFormatted($tv) : '',
             ];
         }
         $cond = in_array(true, array_map('boolval', $state), true);
@@ -359,15 +359,6 @@ class UnwetterAktion extends IPSModule
     private function SetPreState(array $p): void
     {
         $this->SetBuffer('PreState', json_encode($p));
-    }
-
-    /** Wert für die Kachel-Anzeige als Text. */
-    private function ValToStr($v): string
-    {
-        if (is_bool($v)) {
-            return $v ? $this->Translate('on') : $this->Translate('off');
-        }
-        return (string) $v;
     }
 
     /** Wandelt den Text-Wert in den passenden Typ (bool / int / float / string). */

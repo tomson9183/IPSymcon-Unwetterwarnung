@@ -5,17 +5,20 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        html, body { margin:0; padding:0; height:100%; overflow:hidden;
+        html, body { margin:0; padding:0; height:100%; width:100%; overflow:hidden;
             font-family:-apple-system,"Segoe UI",Roboto,sans-serif; }
         #map { position:absolute; inset:0; background:#aadaff; }
         #bar { position:absolute; left:0; right:0; top:0; z-index:600; display:flex; align-items:center; gap:8px;
             padding:6px 10px; background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0));
             color:#fff; font-size:13px; pointer-events:none; }
-        #bar .t { font-weight:800; }
-        #bar .p { font-weight:600; opacity:.95; }
+        #bar .t { font-weight:800; } #bar .p { font-weight:600; opacity:.95; }
         #clock { margin-left:auto; font-weight:800; font-variant-numeric:tabular-nums;
-            background:rgba(0,0,0,.45); padding:2px 8px; border-radius:8px; }
-        #legend { position:absolute; left:8px; bottom:14px; z-index:600; background:rgba(0,0,0,.5); color:#fff;
+            background:rgba(0,0,0,.45); padding:2px 8px; border-radius:8px; min-height:18px; }
+        #play { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); z-index:650;
+            border:0; border-radius:22px; padding:9px 18px; font-size:14px; font-weight:800; cursor:pointer;
+            color:#fff; background:linear-gradient(135deg,#2980b9,#4aa3ff); box-shadow:0 2px 8px rgba(0,0,0,.35); }
+        #play:active { transform:translateX(-50%) scale(.96); }
+        #legend { position:absolute; left:8px; bottom:54px; z-index:600; background:rgba(0,0,0,.5); color:#fff;
             border-radius:6px; padding:4px 7px; font-size:9px; line-height:1.6; pointer-events:none; }
         #legend i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:3px; vertical-align:-1px; }
         #hint { position:absolute; inset:0; z-index:700; display:none; align-items:center; justify-content:center;
@@ -32,82 +35,103 @@
         <span><i style="background:#ffd400"></i>stark</span>
         <span><i style="background:#e60000"></i>heftig</span>
     </div>
+    <button id="play" onclick="onPlay()">▶ Verlauf abspielen</button>
     <div id="hint">Bitte in der Konfiguration eine Gemeinde wählen.</div>
 
     <script>
-        var map, marker, radarLayers = [], anim = null, rvTimer = null;
+        var CFG = null, map = null, marker = null, layers = [], anim = null, stopT = null, playing = false;
+
+        function invalidate() { if (map) { map.invalidateSize(false); } }
 
         function initMap(lat, lon, zoom) {
             map = L.map('map', { zoomControl: true, attributionControl: true }).setView([lat, lon], zoom);
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19, attribution: '© OpenStreetMap'
-            }).addTo(map);
-            marker = L.circleMarker([lat, lon], {
-                radius: 7, color: '#e74c3c', weight: 3, fillColor: '#e74c3c', fillOpacity: .4
-            }).addTo(map);
-            loadRadar();
-            if (rvTimer) { clearInterval(rvTimer); }
-            rvTimer = setInterval(loadRadar, 5 * 60 * 1000); // alle 5 min neue Frames
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+            marker = L.circleMarker([lat, lon], { radius: 7, color: '#e74c3c', weight: 3, fillColor: '#e74c3c', fillOpacity: .4 }).addTo(map);
+            if (window.ResizeObserver) { new ResizeObserver(function () { invalidate(); }).observe(document.getElementById('map')); }
+            [100, 400, 900, 1800].forEach(function (ms) { setTimeout(invalidate, ms); });
+            loadRadar(false);
         }
 
-        function clearRadar() {
+        function clearLayers() {
             if (anim) { clearInterval(anim); anim = null; }
-            radarLayers.forEach(function (l) { map.removeLayer(l.layer); });
-            radarLayers = [];
+            layers.forEach(function (o) { map.removeLayer(o.layer); });
+            layers = [];
         }
 
-        function loadRadar() {
+        function setFrame(i) {
+            layers.forEach(function (o, j) { o.layer.setOpacity(j === i ? 0.72 : 0); });
+            var fr = layers[i];
+            if (fr) {
+                var t = new Date(fr.time * 1000);
+                document.getElementById('clock').textContent =
+                    t.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + (fr.forecast ? ' ⏩' : '');
+            }
+        }
+
+        function loadRadar(autoplay) {
             fetch('https://api.rainviewer.com/public/weather-maps.json')
                 .then(function (r) { return r.json(); })
                 .then(function (api) {
-                    clearRadar();
+                    clearLayers();
                     var host = api.host;
                     var past = (api.radar && api.radar.past) || [];
                     var now = (api.radar && api.radar.nowcast) || [];
                     var frames = past.concat(now);
-                    var pastCount = past.length;
                     frames.forEach(function (f, j) {
                         var layer = L.tileLayer(host + f.path + '/256/{z}/{x}/{y}/2/1_1.png', { opacity: 0, zIndex: 400 + j });
                         layer.addTo(map);
-                        radarLayers.push({ layer: layer, time: f.time, forecast: j >= pastCount });
+                        layers.push({ layer: layer, time: f.time, forecast: j >= past.length });
                     });
-                    var i = 0;
-                    var clock = document.getElementById('clock');
-                    function step() {
-                        radarLayers.forEach(function (o, j) { o.layer.setOpacity(j === i ? 0.72 : 0); });
-                        var fr = radarLayers[i];
-                        if (fr) {
-                            var t = new Date(fr.time * 1000);
-                            clock.textContent = t.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-                                + (fr.forecast ? ' ⏩' : '');
-                        }
-                        i = (i + 1) % radarLayers.length;
-                    }
-                    if (anim) { clearInterval(anim); }
-                    if (radarLayers.length) { step(); anim = setInterval(step, 600); }
+                    if (layers.length) { setFrame(layers.length - 1); } // neuestes Bild statisch zeigen
+                    if (autoplay) { play(); }
                 })
                 .catch(function () {});
+        }
+
+        function play() {
+            if (!layers.length) { return; }
+            if (anim) { clearInterval(anim); }
+            if (stopT) { clearTimeout(stopT); }
+            playing = true;
+            document.getElementById('play').textContent = '⏸ läuft …';
+            var i = 0;
+            anim = setInterval(function () { setFrame(i); i = (i + 1) % layers.length; }, 600);
+            var dur = (CFG && CFG.play ? CFG.play : 30) * 1000;
+            stopT = setTimeout(stop, dur);
+        }
+
+        function stop() {
+            if (anim) { clearInterval(anim); anim = null; }
+            if (stopT) { clearTimeout(stopT); stopT = null; }
+            playing = false;
+            document.getElementById('play').textContent = '▶ Verlauf abspielen';
+            if (layers.length) { setFrame(layers.length - 1); } // zurück zum neuesten Bild
+        }
+
+        function onPlay() {
+            if (playing) { stop(); return; }
+            // frische Frames laden und sofort abspielen
+            if (map) { loadRadar(true); }
         }
 
         function render(data) {
             if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { return; } }
             if (!data) { return; }
+            CFG = data;
             var ok = data.configured && data.lat && data.lon;
             document.getElementById('hint').style.display = ok ? 'none' : 'flex';
+            document.getElementById('play').style.display = ok ? 'block' : 'none';
             document.getElementById('place').textContent = data.place || '';
             if (!ok) { return; }
             var zoom = data.zoom || 11;
             if (!map) { initMap(data.lat, data.lon, zoom); }
-            else { map.setView([data.lat, data.lon], zoom); marker.setLatLng([data.lat, data.lon]); setTimeout(function(){ map.invalidateSize(); }, 50); }
+            else { map.setView([data.lat, data.lon], zoom); marker.setLatLng([data.lat, data.lon]); invalidate(); }
         }
 
         function handleMessage(data) { render(data); }
 
-        window.addEventListener('resize', function () { if (map) { map.invalidateSize(); } });
-        window.addEventListener('load', function () {
-            render(/*INITIAL_DATA*/null);
-            setTimeout(function () { if (map) { map.invalidateSize(); } }, 200);
-        });
+        window.addEventListener('resize', invalidate);
+        window.addEventListener('load', function () { render(/*INITIAL_DATA*/null); [150, 500, 1200].forEach(function (ms) { setTimeout(invalidate, ms); }); });
     </script>
 </body>
 </html>

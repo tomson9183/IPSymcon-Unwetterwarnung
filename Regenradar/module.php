@@ -24,6 +24,7 @@ class UnwetterRegenradar extends IPSModule
         $this->RegisterPropertyString('Bundesland', '');
         $this->RegisterPropertyString('GemeindeARS', '');
         $this->RegisterPropertyInteger('Zoom', 11); // Leaflet-Zoom: 9=weit … 13=nah
+        $this->RegisterPropertyInteger('PlayDuration', 30); // Sekunden Abspieldauer je Knopfdruck
 
         $this->RegisterAttributeString('GemeindeName', '');
         $this->RegisterAttributeFloat('Lat', 0.0);
@@ -95,6 +96,7 @@ class UnwetterRegenradar extends IPSModule
             'lat'        => $this->ReadAttributeFloat('Lat'),
             'lon'        => $this->ReadAttributeFloat('Lon'),
             'zoom'       => $this->ReadPropertyInteger('Zoom'),
+            'play'       => max(5, $this->ReadPropertyInteger('PlayDuration')),
             'place'      => $this->ReadAttributeString('GemeindeName'),
             'configured' => $this->ReadPropertyString('GemeindeARS') !== '',
         ]);

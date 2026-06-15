@@ -2,7 +2,7 @@
     "elements": [
         {
             "type": "Label",
-            "caption": "🌧️ REGENRADAR – DWD-Niederschlagsradar als Kachel, zentriert auf deine Gemeinde (roter Punkt). Die Bilder werden vom Symcon-Server geladen und eingebettet – das Anzeigegerät braucht KEINEN externen Internetzugriff. (Diese Instanz erzeugt KEINE Warnungen – dafür ist die „Warnzentrale“ zuständig.)"
+            "caption": "🌧️ REGENRADAR – Karte mit Ortsnamen (OpenStreetMap) + DWD-Niederschlagsradar als Animation. Der Symcon-Server baut die Bilder zusammen und bettet sie ein – das Anzeigegerät braucht KEINEN externen Internetzugriff. (Diese Instanz erzeugt KEINE Warnungen.)"
         },
         {
             "type": "ValidationTextBox",
@@ -20,17 +20,22 @@
         {
             "type": "Select",
             "name": "GemeindeARS",
-            "caption": "Gemeinde (Kartenmitte)",
+            "caption": "Gemeinde",
             "options": []
+        },
+        {
+            "type": "ValidationTextBox",
+            "name": "Ortsteil",
+            "caption": "Ortsteil im Fokus (optional, z. B. Stadtteil/Dorf in der Gemeinde)"
         },
         {
             "type": "Select",
             "name": "Zoom",
             "caption": "Kartenausschnitt",
             "options": [
-                { "caption": "Stadt (nah)", "value": 1 },
-                { "caption": "Region", "value": 2 },
-                { "caption": "Bundesland (weit)", "value": 3 }
+                { "caption": "Ortsteil / Stadt (nah)", "value": 1 },
+                { "caption": "Gemeinde + Nachbarorte", "value": 2 },
+                { "caption": "Region (weit)", "value": 3 }
             ]
         },
         {
@@ -58,13 +63,13 @@
         },
         {
             "type": "Label",
-            "caption": "Die Animation läuft nur, wenn der ▶-Knopf in der Kachel gedrückt wird (für die eingestellte Dauer), und stoppt dann wieder. Quelle: offener DWD-GeoServer (maps.dwd.de) – kein Login nötig."
+            "caption": "Die Animation läuft nur auf ▶-Knopfdruck (für die eingestellte Dauer). Karte: © OpenStreetMap-Mitwirkende. Radar: DWD (maps.dwd.de). Ortsteil-Suche: Nominatim/OpenStreetMap."
         }
     ],
     "actions": [
         {
             "type": "Button",
-            "caption": "🔄 Radar jetzt laden / testen",
+            "caption": "🔄 Karte jetzt bauen / testen",
             "onClick": "UWR_RefreshTest($id);"
         }
     ],

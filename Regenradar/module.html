@@ -5,11 +5,10 @@
     <style>
         html, body { margin:0; padding:0; overflow:hidden; background:#e9eff3;
             font-family:-apple-system,"Segoe UI",Roboto,sans-serif; }
+        /* Basisbild im Fluss (width:100%, Hoehe automatisch) -> Kachel bekommt Hoehe. */
         #wrap { position:relative; width:100%; line-height:0; }
         #base { width:100%; height:auto; display:block; }
-        /* zwei Overlay-Ebenen fuer weiches Ueberblenden (Crossfade) */
-        .ov { position:absolute; left:0; top:0; width:100%; height:auto; display:block; opacity:0;
-            transition:opacity .30s linear; will-change:opacity; }
+        #ov { position:absolute; left:0; top:0; width:100%; height:auto; display:block; }
         #bar { position:absolute; left:0; right:0; top:0; z-index:6; display:flex; align-items:center; gap:8px;
             padding:6px 10px; line-height:1.2;
             background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0)); color:#fff; font-size:13px; pointer-events:none; }
@@ -31,8 +30,7 @@
 <body>
     <div id="wrap">
         <img id="base" alt="">
-        <img id="ovA" class="ov" alt="">
-        <img id="ovB" class="ov" alt="">
+        <img id="ov" alt="">
         <div id="marker"></div>
         <div id="bar"><span class="t">🌧️ Regenvorschau</span><span class="p" id="place"></span><span id="clock"></span></div>
         <div id="legend">
@@ -46,27 +44,18 @@
     <div id="hint" style="display:none;"></div>
 
     <script>
-        var CFG = null, frames = [], pre = [], anim = null, stopT = null, playing = false, front = 'A', cur = 0;
+        var CFG = null, frames = [], pre = [], anim = null, stopT = null, playing = false;
 
-        // Alle Overlay-Bilder vorladen -> sofortiges, flüssiges Umschalten.
+        // Alle Overlays vorladen (dekodieren) -> spaeteres Umschalten ist sofortig & ruckelfrei.
         function preload() {
-            pre = frames.map(function (f) { var im = new Image(); im.src = f.ov; return im; });
+            pre = [];
+            for (var i = 0; i < frames.length; i++) { var im = new Image(); im.src = frames[i].ov; pre.push(im); }
         }
 
-        // Zeigt Frame i; mit sanftem Überblenden (Crossfade) zwischen den beiden Ebenen.
-        function showFrame(i, fade) {
+        function showFrame(i) {
             if (!frames.length) { return; }
             i = (i + frames.length) % frames.length;
-            cur = i;
-            var a = document.getElementById('ovA'), b = document.getElementById('ovB');
-            var show = (front === 'A') ? b : a;   // auf der versteckten Ebene laden
-            var hide = (front === 'A') ? a : b;
-            show.src = frames[i].ov;
-            if (!fade) { show.style.transition = 'none'; }
-            show.style.opacity = '1';
-            hide.style.opacity = '0';
-            if (!fade) { void show.offsetWidth; show.style.transition = ''; }
-            front = (front === 'A') ? 'B' : 'A';
+            document.getElementById('ov').src = frames[i].ov;
             document.getElementById('clock').textContent = frames[i].label || '';
         }
 
@@ -77,11 +66,8 @@
             playing = true;
             document.getElementById('play').textContent = '⏸ Vorschau läuft …';
             var i = 0;
-            showFrame(0, true);
-            anim = setInterval(function () {
-                i = (i + 1) % frames.length;
-                showFrame(i, true);
-            }, 420);
+            showFrame(0);
+            anim = setInterval(function () { i = (i + 1) % frames.length; showFrame(i); }, 450);
             var dur = (CFG && CFG.play ? CFG.play : 30) * 1000;
             stopT = setTimeout(stop, dur);
         }
@@ -91,7 +77,7 @@
             if (stopT) { clearTimeout(stopT); stopT = null; }
             playing = false;
             document.getElementById('play').textContent = '▶ 60-Min-Vorschau';
-            showFrame(0, true); // "jetzt"
+            showFrame(0);
         }
 
         function onPlay() {
@@ -122,7 +108,7 @@
                 document.getElementById('base').src = data.base;
                 preload();
                 document.getElementById('play').style.display = (frames.length > 1) ? 'block' : 'none';
-                if (data.autoplay) { play(); } else { stop(); }
+                if (data.autoplay) { play(); } else { showFrame(0); }
             }
         }
 

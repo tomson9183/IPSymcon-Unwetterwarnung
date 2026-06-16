@@ -40,10 +40,10 @@
         },
         {
             "type": "NumberSpinner",
-            "name": "Frames",
-            "caption": "Animation: Anzahl Zeitschritte (à 5 min)",
+            "name": "ForecastSteps",
+            "caption": "Vorschau-Länge in 5-Min-Schritten (12 = 60 Minuten)",
             "minimum": 1,
-            "maximum": 16
+            "maximum": 15
         },
         {
             "type": "NumberSpinner",
@@ -54,16 +54,8 @@
             "suffix": "s"
         },
         {
-            "type": "NumberSpinner",
-            "name": "RefreshInterval",
-            "caption": "Bilder neu laden alle (Sekunden)",
-            "minimum": 120,
-            "maximum": 3600,
-            "suffix": "s"
-        },
-        {
             "type": "Label",
-            "caption": "Die Animation läuft nur auf ▶-Knopfdruck (für die eingestellte Dauer). Karte: © OpenStreetMap-Mitwirkende. Radar: DWD (maps.dwd.de). Ortsteil-Suche: Nominatim/OpenStreetMap."
+            "caption": "Der ▶-Knopf in der Kachel erzeugt die Vorschau IMMER ab der aktuellen Zeit (DWD-Vorhersageradar, Wolkenverlauf) und spielt sie ab. Karte: © OpenStreetMap-Mitwirkende. Radar: DWD (maps.dwd.de). Ortsteil-Suche: Nominatim/OpenStreetMap."
         }
     ],
     "actions": [

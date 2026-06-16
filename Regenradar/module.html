@@ -3,17 +3,18 @@
 <head>
     <meta charset="utf-8">
     <style>
-        html, body { margin:0; padding:0; overflow:hidden; background:#eaf1f5;
+        html, body { margin:0; padding:0; overflow:hidden; background:#e9eff3;
             font-family:-apple-system,"Segoe UI",Roboto,sans-serif; }
-        /* Bild im Fluss (width:100%, Hoehe automatisch) -> Kachel bekommt zuverlaessig Hoehe. */
+        /* Basisbild im Fluss (width:100%, Hoehe automatisch) -> Kachel bekommt Hoehe. */
         #wrap { position:relative; width:100%; line-height:0; }
-        #img { width:100%; height:auto; display:block; }
+        #base { width:100%; height:auto; display:block; }
+        #ov { position:absolute; left:0; top:0; width:100%; height:auto; display:block; }
         #bar { position:absolute; left:0; right:0; top:0; z-index:6; display:flex; align-items:center; gap:8px;
             padding:6px 10px; line-height:1.2;
             background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0)); color:#fff; font-size:13px; pointer-events:none; }
         #bar .t { font-weight:800; } #bar .p { font-weight:600; opacity:.95; }
         #clock { margin-left:auto; font-weight:800; font-variant-numeric:tabular-nums;
-            background:rgba(0,0,0,.45); padding:2px 8px; border-radius:8px; }
+            background:rgba(0,0,0,.5); padding:2px 8px; border-radius:8px; }
         #marker { position:absolute; left:50%; top:50%; width:14px; height:14px; transform:translate(-50%,-50%); z-index:5;
             border:3px solid #e74c3c; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,.85); pointer-events:none; }
         #legend { position:absolute; left:8px; bottom:46px; z-index:6; background:rgba(0,0,0,.5); color:#fff;
@@ -28,27 +29,28 @@
 </head>
 <body>
     <div id="wrap">
-        <img id="img" alt="">
+        <img id="base" alt="">
+        <img id="ov" alt="">
         <div id="marker"></div>
-        <div id="bar"><span class="t">🌧️ Regenradar</span><span class="p" id="place"></span><span id="clock"></span></div>
+        <div id="bar"><span class="t">🌧️ Regenvorschau</span><span class="p" id="place"></span><span id="clock"></span></div>
         <div id="legend">
             <span><i style="background:#88c0ff"></i>leicht</span>
             <span><i style="background:#1f9d2f"></i>mäßig</span>
             <span><i style="background:#ffd400"></i>stark</span>
             <span><i style="background:#e60000"></i>heftig</span>
         </div>
-        <button id="play" onclick="onPlay()">▶ Verlauf abspielen</button>
+        <button id="play" onclick="onPlay()">▶ 60-Min-Vorschau</button>
     </div>
     <div id="hint" style="display:none;"></div>
 
     <script>
-        var CFG = null, frames = [], idx = 0, anim = null, stopT = null, playing = false;
+        var CFG = null, frames = [], anim = null, stopT = null, playing = false;
 
-        function setFrame(i) {
+        function showFrame(i) {
             if (!frames.length) { return; }
-            idx = (i + frames.length) % frames.length;
-            document.getElementById('img').src = frames[idx].img;
-            document.getElementById('clock').textContent = frames[idx].label || '';
+            i = (i + frames.length) % frames.length;
+            document.getElementById('ov').src = frames[i].ov;
+            document.getElementById('clock').textContent = frames[i].label || '';
         }
 
         function play() {
@@ -56,9 +58,9 @@
             if (anim) { clearInterval(anim); }
             if (stopT) { clearTimeout(stopT); }
             playing = true;
-            document.getElementById('play').textContent = '⏸ läuft …';
+            document.getElementById('play').textContent = '⏸ Vorschau läuft …';
             var i = 0;
-            anim = setInterval(function () { setFrame(i); i = (i + 1) % frames.length; }, 600);
+            anim = setInterval(function () { showFrame(i); i = (i + 1) % frames.length; }, 550);
             var dur = (CFG && CFG.play ? CFG.play : 30) * 1000;
             stopT = setTimeout(stop, dur);
         }
@@ -67,11 +69,18 @@
             if (anim) { clearInterval(anim); anim = null; }
             if (stopT) { clearTimeout(stopT); stopT = null; }
             playing = false;
-            document.getElementById('play').textContent = '▶ Verlauf abspielen';
-            setFrame(frames.length - 1); // neuestes Bild
+            document.getElementById('play').textContent = '▶ 60-Min-Vorschau';
+            showFrame(0); // "jetzt"
         }
 
-        function onPlay() { if (playing) { stop(); } else { play(); } }
+        function onPlay() {
+            if (playing) { stop(); return; }
+            if (frames.length > 1) { play(); }              // sofort mit vorhandenen Frames
+            if (typeof requestAction === 'function') {
+                document.getElementById('clock').textContent = 'lädt …';
+                requestAction('Play', true);                 // frische Vorschau ab jetzt holen
+            }
+        }
 
         function render(data) {
             if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { return; } }
@@ -80,22 +89,22 @@
             frames = data.frames || [];
             document.getElementById('place').textContent = data.place || '';
 
-            var ok = data.configured && frames.length > 0;
+            var ok = data.configured && data.base && frames.length > 0;
             document.getElementById('wrap').style.display = ok ? 'block' : 'none';
             var hint = document.getElementById('hint');
             hint.style.display = ok ? 'none' : 'block';
             hint.textContent = data.configured
-                ? 'Radarbilder werden geladen … Falls dauerhaft leer: Konfiguration öffnen und „Radar jetzt laden / testen“ drücken.'
+                ? 'Vorschau wird gebaut … Falls dauerhaft leer: Konfiguration öffnen und „Karte jetzt bauen / testen“ drücken.'
                 : 'Bitte in der Konfiguration eine Gemeinde wählen.';
 
             if (ok) {
+                document.getElementById('base').src = data.base;
                 document.getElementById('play').style.display = (frames.length > 1) ? 'block' : 'none';
-                stop(); // zeigt neuestes Bild
+                if (data.autoplay) { play(); } else { stop(); }
             }
         }
 
         function handleMessage(data) { render(data); }
-
         window.addEventListener('load', function () { render(/*INITIAL_DATA*/null); });
     </script>
 </body>

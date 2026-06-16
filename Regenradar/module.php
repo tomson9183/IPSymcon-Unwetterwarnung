@@ -5,24 +5,27 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/GemeindeData.php';
 
 /**
- * Regenradar – schöne Karte mit Ortsnamen + DWD-Niederschlagsradar als Animation.
+ * Regenradar – Karte mit Ortsnamen + DWD-Niederschlagsvorhersage (Wolkenverlauf).
  *
- * Der Symcon-SERVER setzt die Kachelbilder selbst zusammen und bettet sie ein
- * (das Anzeigegerät braucht KEINEN externen Internetzugriff):
- *   - OpenStreetMap-Kartenkacheln (mit Orts-/Straßennamen) als Basiskarte
- *   - DWD-Niederschlagsradar (maps.dwd.de, 1 km, zeit-dimensioniert) deckungsgleich
- *     darüber – mehrere Zeitschritte ergeben die Animation (wie WarnWetter-App).
- * Zentriert auf die Gemeinde oder – wenn angegeben – auf einen per Geocoding
- * ermittelten Ortsteil. Abspielen per ▶-Knopf für eine einstellbare Dauer.
+ * Der Symcon-SERVER setzt die Kachel zusammen (Anzeigegerät braucht KEINEN externen
+ * Internetzugriff):
+ *   - Basiskarte: OpenStreetMap-Kacheln (mit Orts-/Straßennamen), per GD zu einem
+ *     JPEG zusammengesetzt und EINMAL eingebettet (gecacht).
+ *   - Radar: DWD-Vorhersageradar (RV-Produkt, 1 km, 5-Minuten-Schritte) als kleine
+ *     transparente PNG-Ebenen je Zeitschritt, deckungsgleich über die Karte gelegt.
+ * Beim ▶-Knopf wird die Vorschau IMMER ab der aktuellen Zeit für 60 Minuten erzeugt
+ * und abgespielt (wie die WarnWetter-App). Fokus: Gemeinde oder ein per Geocoding
+ * ermittelter Ortsteil.
  */
 class UnwetterRegenradar extends IPSModule
 {
     use GemeindeData;
 
-    private const WMS = 'https://maps.dwd.de/geoserver/dwd/wms';
-    private const UA  = 'IP-Symcon Unwetter & Gefahren (github.com/tomson9183)';
-    private const W   = 540;
-    private const H   = 380;
+    private const WMS    = 'https://maps.dwd.de/geoserver/dwd/wms';
+    private const RADAR  = 'dwd:Radar_rv_product_1x1km_ger'; // Vorhersage (RADVOR/RV)
+    private const UA     = 'IP-Symcon Unwetter & Gefahren (github.com/tomson9183)';
+    private const W      = 540;
+    private const H      = 380;
 
     public function Create()
     {
@@ -31,17 +34,14 @@ class UnwetterRegenradar extends IPSModule
         $this->RegisterPropertyString('Suche', '');
         $this->RegisterPropertyString('Bundesland', '');
         $this->RegisterPropertyString('GemeindeARS', '');
-        $this->RegisterPropertyString('Ortsteil', '');     // optionaler Fokus innerhalb der Gemeinde
-        $this->RegisterPropertyInteger('Zoom', 2);          // 1=Ortsteil/Stadt(13) 2=Gemeinde(11) 3=Region(9)
-        $this->RegisterPropertyInteger('Frames', 6);        // Zeitschritte (à 5 min)
-        $this->RegisterPropertyInteger('PlayDuration', 30); // Abspieldauer (s)
-        $this->RegisterPropertyInteger('RefreshInterval', 600);
+        $this->RegisterPropertyString('Ortsteil', '');
+        $this->RegisterPropertyInteger('Zoom', 2);              // 1=Ortsteil/Stadt(13) 2=Gemeinde(11) 3=Region(9)
+        $this->RegisterPropertyInteger('ForecastSteps', 12);    // Zeitschritte (à 5 min) -> 12 = 60 min
+        $this->RegisterPropertyInteger('PlayDuration', 30);
 
         $this->RegisterAttributeFloat('Lat', 0.0);
         $this->RegisterAttributeFloat('Lon', 0.0);
         $this->RegisterAttributeString('FocusName', '');
-
-        $this->RegisterTimer('Refresh', 0, 'UWR_Refresh($_IPS[\'TARGET\']);');
     }
 
     public function ApplyChanges()
@@ -49,24 +49,23 @@ class UnwetterRegenradar extends IPSModule
         parent::ApplyChanges();
 
         $this->SetVisualizationType(1);
-        $this->SetBuffer('BaseKey', ''); // Basiskarte bei Konfig-Änderung neu bauen
+        $this->SetBuffer('BaseKey', '');
+        $this->SetBuffer('Data', '');
 
         $ars = $this->ReadPropertyString('GemeindeARS');
         if ($ars === '') {
             $this->SetStatus(104);
-            $this->SetTimerInterval('Refresh', 0);
             return;
         }
 
         $g = $this->GemeindeLookup($ars);
         $lat = $g ? (float) ($g['y'] ?? 0) : 0.0;
         $lon = $g ? (float) ($g['x'] ?? 0) : 0.0;
-        $focus = $g ? (string) ($g['n'] ?? '') : '';
+        $focus = $g ? $this->CleanName((string) ($g['n'] ?? '')) : '';
 
-        // Optional: Ortsteil per Geocoding als Fokus.
         $ortsteil = trim($this->ReadPropertyString('Ortsteil'));
         if ($ortsteil !== '' && $g) {
-            $geo = $this->Geocode($ortsteil, (string) ($g['n'] ?? ''), (string) ($g['k'] ?? ''));
+            $geo = $this->Geocode($ortsteil, $this->CleanName((string) ($g['n'] ?? '')), (string) ($g['k'] ?? ''), $lat, $lon);
             if ($geo !== null) {
                 $lat = $geo[0];
                 $lon = $geo[1];
@@ -79,11 +78,8 @@ class UnwetterRegenradar extends IPSModule
         $this->WriteAttributeString('FocusName', $focus);
         $this->SetStatus(102);
 
-        $interval = max(120, $this->ReadPropertyInteger('RefreshInterval'));
-        $this->SetTimerInterval('Refresh', $interval * 1000);
-
         if (IPS_GetKernelRunlevel() === KR_READY) {
-            $this->Refresh();
+            $this->BuildAndPush(false);
         }
     }
 
@@ -105,28 +101,27 @@ class UnwetterRegenradar extends IPSModule
         $this->UpdateFormField('GemeindeARS', 'options', json_encode($this->GemeindeOptionsBySearch($Suche)));
     }
 
-    public function Refresh(): void
+    /** ▶-Knopf in der Kachel: Vorschau ab JETZT neu erzeugen und abspielen. */
+    public function RequestAction($Ident, $Value)
     {
-        if ($this->ReadPropertyString('GemeindeARS') === '') {
+        if ($Ident === 'Play') {
+            $this->BuildAndPush(true);
             return;
         }
-        $frames = $this->LoadFrames();
-        $this->SetBuffer('Frames', json_encode($frames));
-        $this->UpdateVisualizationValue($this->BuildTilePayload($frames));
+        throw new Exception('Invalid Ident: ' . $Ident);
     }
 
+    /** Knopf „Karte jetzt bauen / testen“. */
     public function RefreshTest(): void
     {
         if ($this->ReadPropertyString('GemeindeARS') === '') {
             echo $this->Translate('Please select a municipality first.');
             return;
         }
-        $frames = $this->LoadFrames();
-        $this->SetBuffer('Frames', json_encode($frames));
-        $this->UpdateVisualizationValue($this->BuildTilePayload($frames));
-        if (count($frames) > 0) {
-            echo sprintf($this->Translate('OK – map + %d radar frames built (server-side). Focus: %s'),
-                count($frames), $this->ReadAttributeString('FocusName'));
+        $data = $this->BuildAndPush(false);
+        if ($data !== null && count($data['frames']) > 0) {
+            echo sprintf($this->Translate('OK – map + %d forecast frames (server-side). Focus: %s'),
+                count($data['frames']), $this->ReadAttributeString('FocusName'));
         } else {
             echo $this->Translate('Error: the server could not build the map/radar (no internet on the Symcon server?).');
         }
@@ -134,40 +129,51 @@ class UnwetterRegenradar extends IPSModule
 
     public function GetVisualizationTile()
     {
-        $html   = file_get_contents(__DIR__ . '/module.html');
-        $frames = json_decode($this->GetBuffer('Frames'), true);
-        if (!is_array($frames)) {
-            $frames = [];
-        }
-        if (count($frames) === 0 && IPS_GetKernelRunlevel() === KR_READY
+        $html = file_get_contents(__DIR__ . '/module.html');
+        $data = json_decode($this->GetBuffer('Data'), true);
+        if (!is_array($data) && IPS_GetKernelRunlevel() === KR_READY
             && $this->ReadPropertyString('GemeindeARS') !== '') {
-            $frames = $this->LoadFrames();
-            $this->SetBuffer('Frames', json_encode($frames));
+            $data = $this->BuildData();
+            $this->SetBuffer('Data', json_encode($data));
         }
-        return str_replace('/*INITIAL_DATA*/null', $this->BuildTilePayload($frames), $html);
+        if (!is_array($data)) {
+            $data = ['base' => '', 'frames' => []];
+        }
+        return str_replace('/*INITIAL_DATA*/null', $this->Payload($data, false), $html);
     }
 
-    private function BuildTilePayload(array $frames): string
+    private function BuildAndPush(bool $autoplay): ?array
+    {
+        if ($this->ReadPropertyString('GemeindeARS') === '') {
+            return null;
+        }
+        $data = $this->BuildData();
+        $this->SetBuffer('Data', json_encode($data));
+        $this->UpdateVisualizationValue($this->Payload($data, $autoplay));
+        return $data;
+    }
+
+    private function Payload(array $data, bool $autoplay): string
     {
         return json_encode([
-            'frames'     => $frames,
+            'base'       => $data['base'] ?? '',
+            'frames'     => $data['frames'] ?? [],
             'play'       => max(5, $this->ReadPropertyInteger('PlayDuration')),
+            'autoplay'   => $autoplay,
             'place'      => $this->ReadAttributeString('FocusName'),
             'configured' => $this->ReadPropertyString('GemeindeARS') !== '',
         ]);
     }
 
     // ---------------------------------------------------------------------
-    //  Kartenaufbau (serverseitig)
-    // ---------------------------------------------------------------------
 
-    /** Baut Basiskarte (einmal, gecacht) + je Zeitschritt das Radar-Overlay (JPEG-data-URI). */
-    private function LoadFrames(): array
+    /** Basiskarte (gecacht) + Vorhersage-Radar-Overlays ab der aktuellen Zeit. */
+    private function BuildData(): array
     {
         $lat = $this->ReadAttributeFloat('Lat');
         $lon = $this->ReadAttributeFloat('Lon');
-        if ($lat == 0.0 && $lon == 0.0 || !function_exists('imagecreatetruecolor')) {
-            return [];
+        if (($lat == 0.0 && $lon == 0.0) || !function_exists('imagecreatetruecolor')) {
+            return ['base' => '', 'frames' => []];
         }
 
         $zoomMap = [1 => 13, 2 => 11, 3 => 9];
@@ -179,50 +185,46 @@ class UnwetterRegenradar extends IPSModule
         $left = $gx - $W / 2;
         $top  = $gy - $H / 2;
 
-        // Basiskarte (OSM-Mosaik) bauen oder aus Cache holen
-        $key  = sprintf('%.4f|%.4f|%d', $lat, $lon, $z);
-        $baseB64 = '';
-        if ($this->GetBuffer('BaseKey') === $key) {
-            $baseB64 = $this->GetBuffer('BaseImg');
-        }
-        if ($baseB64 === '') {
-            $basePng = $this->BuildBaseMap($z, $left, $top, $W, $H);
-            if ($basePng === null) {
-                return [];
+        // Basiskarte cachen (Schlüssel = Mitte + Zoom)
+        $key = sprintf('%.4f|%.4f|%d', $lat, $lon, $z);
+        $base = ($this->GetBuffer('BaseKey') === $key) ? $this->GetBuffer('Base') : '';
+        if ($base === '') {
+            $png = $this->BuildBaseMap($z, $left, $top, $W, $H);
+            if ($png === null) {
+                return ['base' => '', 'frames' => []];
             }
-            $baseB64 = base64_encode($basePng);
-            $this->SetBuffer('BaseImg', $baseB64);
+            $base = 'data:image/jpeg;base64,' . base64_encode($png);
+            $this->SetBuffer('Base', $base);
             $this->SetBuffer('BaseKey', $key);
         }
 
-        // Geo-bbox des Canvas (für DWD-Radar-Anfrage)
+        // Canvas-bbox (für DWD-Radar in EPSG:4326)
         [$lonL, $latT] = $this->GlobalToLonLat($left, $top, $z);
         [$lonR, $latB] = $this->GlobalToLonLat($left + $W, $top + $H, $z);
         $bbox = $this->Num($latB) . ',' . $this->Num($lonL) . ',' . $this->Num($latT) . ',' . $this->Num($lonR);
 
-        $n   = max(1, min(16, $this->ReadPropertyInteger('Frames')));
-        $end = (int) (floor(time() / 300) * 300) - 900;
+        // Vorhersage AB JETZT: aktueller 5-Minuten-Slot + N Schritte in die Zukunft.
+        $steps = max(1, min(15, $this->ReadPropertyInteger('ForecastSteps')));
+        $start = (int) (floor(time() / 300) * 300);
 
         $frames = [];
-        for ($k = $n - 1; $k >= 0; $k--) {
-            $t   = $end - $k * 300;
-            $jpg = $this->ComposeFrame($baseB64, $bbox, $W, $H, $t);
-            if ($jpg !== null) {
+        for ($k = 0; $k <= $steps; $k++) {
+            $t   = $start + $k * 300;
+            $png = $this->FetchRadar($bbox, $W, $H, $t);
+            if ($png !== null) {
                 $frames[] = [
-                    'img'   => 'data:image/jpeg;base64,' . base64_encode($jpg),
-                    'label' => date('H:i', $t),
+                    'ov'    => 'data:image/png;base64,' . base64_encode($png),
+                    'label' => ($k === 0 ? ($this->Translate('now') . ' ' . date('H:i', $t)) : ('+' . ($k * 5) . ' min')),
                 ];
             }
         }
-        return $frames;
+        return ['base' => $base, 'frames' => $frames];
     }
 
-    /** OSM-Kachelmosaik als PNG-Bytes. */
     private function BuildBaseMap(int $z, float $left, float $top, int $W, int $H): ?string
     {
         $canvas = imagecreatetruecolor($W, $H);
-        $bg = imagecolorallocate($canvas, 233, 239, 243);
-        imagefilledrectangle($canvas, 0, 0, $W, $H, $bg);
+        imagefilledrectangle($canvas, 0, 0, $W, $H, imagecolorallocate($canvas, 233, 239, 243));
 
         $tx0 = (int) floor($left / 256);
         $tx1 = (int) floor(($left + $W - 1) / 256);
@@ -243,36 +245,25 @@ class UnwetterRegenradar extends IPSModule
             return null;
         }
         ob_start();
-        imagepng($canvas);
+        imagejpeg($canvas, null, 80);
         return ob_get_clean();
     }
 
-    /** Basiskarte + DWD-Radar (transparent) eines Zeitschritts -> JPEG-Bytes. */
-    private function ComposeFrame(string $baseB64, string $bbox, int $W, int $H, int $timestamp): ?string
+    /** Transparentes DWD-Vorhersageradar (PNG-Bytes) für einen Zeitschritt. */
+    private function FetchRadar(string $bbox, int $W, int $H, int $timestamp): ?string
     {
-        $base = @imagecreatefromstring(base64_decode($baseB64));
-        if (!$base) {
-            return null;
-        }
         $params = [
             'service' => 'WMS', 'version' => '1.3.0', 'request' => 'GetMap',
-            'layers' => 'dwd:Niederschlagsradar', 'crs' => 'EPSG:4326',
+            'layers' => self::RADAR, 'crs' => 'EPSG:4326',
             'bbox' => $bbox, 'width' => (string) $W, 'height' => (string) $H,
             'format' => 'image/png', 'transparent' => 'true',
             'time' => gmdate('Y-m-d\TH:i:00.000\Z', $timestamp),
         ];
-        $radar = $this->FetchImage(self::WMS . '?' . http_build_query($params));
-        if ($radar) {
-            imagealphablending($base, true);
-            imagecopy($base, $radar, 0, 0, 0, 0, $W, $H);
-        }
-        ob_start();
-        imagejpeg($base, null, 78);
-        return ob_get_clean();
+        return $this->FetchRaw(self::WMS . '?' . http_build_query($params), true);
     }
 
-    /** Lädt eine URL und gibt ein GD-Bild zurück (oder null). */
-    private function FetchImage(string $url)
+    /** Holt rohe Bytes (optional nur Bilder). */
+    private function FetchRaw(string $url, bool $imageOnly = false): ?string
     {
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -284,41 +275,70 @@ class UnwetterRegenradar extends IPSModule
         ]);
         $data = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $type = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         unset($ch);
         if ($data === false || $code < 200 || $code >= 300) {
             return null;
         }
-        $im = @imagecreatefromstring((string) $data);
+        if ($imageOnly && stripos($type, 'image') === false) {
+            return null;
+        }
+        return (string) $data;
+    }
+
+    private function FetchImage(string $url)
+    {
+        $data = $this->FetchRaw($url, true);
+        if ($data === null) {
+            return null;
+        }
+        $im = @imagecreatefromstring($data);
         return $im ?: null;
     }
 
-    /** Geocoding eines Ortsteils via Nominatim (OSM). */
-    private function Geocode(string $ortsteil, string $gemeinde, string $kreis): ?array
+    /** Geocoding eines Ortsteils via Nominatim; Plausibilität: nahe der Gemeinde. */
+    private function Geocode(string $ortsteil, string $gemeinde, string $kreis, float $gemLat, float $gemLon): ?array
     {
-        $q = $ortsteil . ', ' . $gemeinde . ', ' . $kreis . ', Deutschland';
-        $url = 'https://nominatim.openstreetmap.org/search?' . http_build_query([
-            'format' => 'jsonv2', 'limit' => 1, 'countrycodes' => 'de', 'q' => $q,
-        ]);
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 15,
-            CURLOPT_USERAGENT      => self::UA,
-        ]);
-        $data = curl_exec($ch);
-        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        unset($ch);
-        if ($data === false || $code !== 200) {
-            return null;
-        }
-        $json = json_decode((string) $data, true);
-        if (is_array($json) && isset($json[0]['lat'], $json[0]['lon'])) {
-            return [(float) $json[0]['lat'], (float) $json[0]['lon']];
+        $queries = [
+            $ortsteil . ', ' . $gemeinde . ', ' . $kreis . ', Deutschland',
+            $ortsteil . ', ' . $gemeinde . ', Deutschland',
+            $ortsteil . ', ' . $kreis . ', Deutschland',
+        ];
+        foreach ($queries as $q) {
+            $url = 'https://nominatim.openstreetmap.org/search?' . http_build_query([
+                'format' => 'jsonv2', 'limit' => 1, 'countrycodes' => 'de', 'q' => $q,
+            ]);
+            $data = $this->FetchRaw($url, false);
+            if ($data === null) {
+                continue;
+            }
+            $json = json_decode($data, true);
+            if (is_array($json) && isset($json[0]['lat'], $json[0]['lon'])) {
+                $lat = (float) $json[0]['lat'];
+                $lon = (float) $json[0]['lon'];
+                // Plausibilität: max ~40 km von der Gemeinde entfernt (sonst falscher Treffer).
+                if ($this->DistanceKm($lat, $lon, $gemLat, $gemLon) <= 40) {
+                    return [$lat, $lon];
+                }
+            }
         }
         return null;
     }
 
-    // --- Slippy-Map-Mathematik (Web Mercator) ---
+    private function DistanceKm(float $la1, float $lo1, float $la2, float $lo2): float
+    {
+        $r = 6371;
+        $dLa = deg2rad($la2 - $la1);
+        $dLo = deg2rad($lo2 - $lo1);
+        $a = sin($dLa / 2) ** 2 + cos(deg2rad($la1)) * cos(deg2rad($la2)) * sin($dLo / 2) ** 2;
+        return $r * 2 * atan2(sqrt($a), sqrt(1 - $a));
+    }
+
+    /** Entfernt Gemeinde-/Stadt-Präfixe (sonst findet Nominatim nichts). */
+    private function CleanName(string $name): string
+    {
+        return trim(preg_replace('/^(Gemeinde|Stadt|Markt|Flecken|Kreisfreie Stadt|Landeshauptstadt|Hansestadt|Große Kreisstadt)\s+/u', '', $name));
+    }
 
     private function LonLatToGlobal(float $lat, float $lon, int $z): array
     {
@@ -337,7 +357,6 @@ class UnwetterRegenradar extends IPSModule
         return [$lon, $lat];
     }
 
-    /** Locale-sichere Zahl mit Punkt (gegen "47,6535"-Problem). */
     private function Num(float $v): string
     {
         return number_format($v, 4, '.', '');

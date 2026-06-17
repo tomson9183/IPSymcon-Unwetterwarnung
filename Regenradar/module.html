@@ -3,12 +3,11 @@
 <head>
     <meta charset="utf-8">
     <style>
-        html, body { margin:0; padding:0; overflow:hidden; background:#e9eff3;
+        html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#e9eff3;
             font-family:-apple-system,"Segoe UI",Roboto,sans-serif; }
-        /* Basisbild im Fluss (width:100%, Hoehe automatisch) -> Kachel bekommt Hoehe. */
-        #wrap { position:relative; width:100%; line-height:0; }
-        #base { width:100%; height:auto; display:block; }
-        #ov { position:absolute; left:0; top:0; width:100%; height:auto; display:block; }
+        /* Karte fuellt die Kachel exakt (Hoehe per JS), kein Scrollen, nie leer. */
+        #wrap { position:relative; width:100%; overflow:hidden; }
+        #base, #ov { position:absolute; left:0; top:0; width:100%; height:100%; object-fit:cover; display:block; }
         #bar { position:absolute; left:0; right:0; top:0; z-index:6; display:flex; align-items:center; gap:8px;
             padding:6px 10px; line-height:1.2;
             background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0)); color:#fff; font-size:13px; pointer-events:none; }
@@ -17,14 +16,15 @@
             background:rgba(0,0,0,.5); padding:2px 8px; border-radius:8px; }
         #marker { position:absolute; left:50%; top:50%; width:14px; height:14px; transform:translate(-50%,-50%); z-index:5;
             border:3px solid #e74c3c; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,.85); pointer-events:none; }
-        #legend { position:absolute; left:8px; bottom:46px; z-index:6; background:rgba(0,0,0,.5); color:#fff;
+        #legend { position:absolute; left:8px; bottom:8px; z-index:6; background:rgba(0,0,0,.5); color:#fff;
             border-radius:6px; padding:4px 7px; font-size:9px; line-height:1.6; pointer-events:none; }
         #legend i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:3px; vertical-align:-1px; }
         #play { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); z-index:7;
             border:0; border-radius:22px; padding:8px 18px; font-size:14px; font-weight:800; cursor:pointer; line-height:1.2;
             color:#fff; background:linear-gradient(135deg,#2980b9,#4aa3ff); box-shadow:0 2px 8px rgba(0,0,0,.35); }
         #play:active { transform:translateX(-50%) scale(.96); }
-        #hint { padding:30px 16px; text-align:center; color:#445; line-height:1.4; }
+        #hint { position:absolute; inset:0; z-index:8; display:none; align-items:center; justify-content:center;
+            text-align:center; color:#445; background:#eef3f7; padding:24px; }
     </style>
 </head>
 <body>
@@ -40,13 +40,20 @@
             <span><i style="background:#e60000"></i>heftig</span>
         </div>
         <button id="play" onclick="onPlay()">▶ 60-Min-Vorschau</button>
+        <div id="hint"></div>
     </div>
-    <div id="hint" style="display:none;"></div>
 
     <script>
         var CFG = null, frames = [], pre = [], anim = null, stopT = null, playing = false;
 
-        // Alle Overlays vorladen (dekodieren) -> spaeteres Umschalten ist sofortig & ruckelfrei.
+        // Kachelhoehe exakt ausfuellen; Fallback (Breite*0.7) damit nie leer.
+        function sizeTile() {
+            var w = window.innerWidth || document.documentElement.clientWidth || 320;
+            var h = window.innerHeight || 0;
+            if (h < 60) { h = Math.round(w * 0.70); }
+            document.getElementById('wrap').style.height = h + 'px';
+        }
+
         function preload() {
             pre = [];
             for (var i = 0; i < frames.length; i++) { var im = new Image(); im.src = frames[i].ov; pre.push(im); }
@@ -96,25 +103,27 @@
             CFG = data;
             frames = data.frames || [];
             document.getElementById('place').textContent = data.place || '';
+            sizeTile();
 
             var ok = data.configured && data.base && frames.length > 0;
-            document.getElementById('wrap').style.display = ok ? 'block' : 'none';
             var hint = document.getElementById('hint');
-            hint.style.display = ok ? 'none' : 'block';
+            hint.style.display = ok ? 'none' : 'flex';
             hint.textContent = data.configured
                 ? 'Vorschau wird gebaut … Falls dauerhaft leer: Konfiguration öffnen und „Karte jetzt bauen / testen“ drücken.'
                 : 'Bitte in der Konfiguration eine Gemeinde wählen.';
+            document.getElementById('play').style.display = (ok && frames.length > 1) ? 'block' : 'none';
 
             if (ok) {
                 document.getElementById('base').src = data.base;
                 preload();
-                document.getElementById('play').style.display = (frames.length > 1) ? 'block' : 'none';
                 if (data.autoplay) { play(); } else { showFrame(0); }
             }
         }
 
         function handleMessage(data) { render(data); }
-        window.addEventListener('load', function () { render(/*INITIAL_DATA*/null); });
+        window.addEventListener('resize', sizeTile);
+        if (window.ResizeObserver) { new ResizeObserver(sizeTile).observe(document.documentElement); }
+        window.addEventListener('load', function () { sizeTile(); render(/*INITIAL_DATA*/null); [120, 400, 1000].forEach(function (ms) { setTimeout(sizeTile, ms); }); });
     </script>
 </body>
 </html>

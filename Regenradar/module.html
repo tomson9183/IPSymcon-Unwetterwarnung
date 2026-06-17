@@ -67,7 +67,8 @@
             document.getElementById('play').textContent = '⏸ Vorschau läuft …';
             var i = 0;
             showFrame(0);
-            anim = setInterval(function () { i = (i + 1) % frames.length; showFrame(i); }, 450);
+            var step = (CFG && CFG.step ? CFG.step : 300);
+            anim = setInterval(function () { i = (i + 1) % frames.length; showFrame(i); }, step);
             var dur = (CFG && CFG.play ? CFG.play : 30) * 1000;
             stopT = setTimeout(stop, dur);
         }

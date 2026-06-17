@@ -22,6 +22,7 @@
             "Region (weit)": "Region (wide)",
             "Vorschau-Länge in 5-Min-Schritten (12 = 60 Minuten)": "Forecast length in 5-min steps (12 = 60 minutes)",
             "Abspieldauer je Klick (Sekunden)": "Play duration per click (seconds)",
+            "Film-Tempo: Millisekunden je Bild (kleiner = schneller, z. B. 300)": "Film speed: milliseconds per frame (smaller = faster, e.g. 300)",
             "Der ▶-Knopf in der Kachel erzeugt die Vorschau IMMER ab der aktuellen Zeit (DWD-Vorhersageradar, Wolkenverlauf) und spielt sie ab. Karte: © OpenStreetMap-Mitwirkende. Radar: DWD (maps.dwd.de). Ortsteil-Suche: Nominatim/OpenStreetMap.": "The ▶ button in the tile always builds the forecast from the current time (DWD forecast radar, cloud movement) and plays it. Map: © OpenStreetMap contributors. Radar: DWD (maps.dwd.de). Locality search: Nominatim/OpenStreetMap.",
             "🔄 Karte jetzt bauen / testen": "🔄 Build / test map now",
             "Please select…": "Please select…",

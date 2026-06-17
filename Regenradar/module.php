@@ -38,6 +38,7 @@ class UnwetterRegenradar extends IPSModule
         $this->RegisterPropertyInteger('Zoom', 2);              // 1=Ortsteil/Stadt(13) 2=Gemeinde(11) 3=Region(9)
         $this->RegisterPropertyInteger('ForecastSteps', 12);    // Zeitschritte (à 5 min) -> 12 = 60 min
         $this->RegisterPropertyInteger('PlayDuration', 30);
+        $this->RegisterPropertyInteger('StepMs', 300);          // Tempo: ms je Bild (Film-Geschwindigkeit)
 
         $this->RegisterAttributeFloat('Lat', 0.0);
         $this->RegisterAttributeFloat('Lon', 0.0);
@@ -159,6 +160,7 @@ class UnwetterRegenradar extends IPSModule
             'base'       => $data['base'] ?? '',
             'frames'     => $data['frames'] ?? [],
             'play'       => max(5, $this->ReadPropertyInteger('PlayDuration')),
+            'step'       => max(80, $this->ReadPropertyInteger('StepMs')),
             'autoplay'   => $autoplay,
             'place'      => $this->ReadAttributeString('FocusName'),
             'configured' => $this->ReadPropertyString('GemeindeARS') !== '',
@@ -214,7 +216,8 @@ class UnwetterRegenradar extends IPSModule
             if ($png !== null) {
                 $frames[] = [
                     'ov'    => 'data:image/png;base64,' . base64_encode($png),
-                    'label' => ($k === 0 ? ($this->Translate('now') . ' ' . date('H:i', $t)) : ('+' . ($k * 5) . ' min')),
+                    // Echte Uhrzeit des Bildes; +N min als Zusatz zur Orientierung.
+                    'label' => date('H:i', $t) . ' Uhr' . ($k === 0 ? ' · ' . $this->Translate('now') : ' · +' . ($k * 5) . ' min'),
                 ];
             }
         }

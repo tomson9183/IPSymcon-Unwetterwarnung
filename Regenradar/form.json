@@ -54,6 +54,14 @@
             "suffix": "s"
         },
         {
+            "type": "NumberSpinner",
+            "name": "StepMs",
+            "caption": "Film-Tempo: Millisekunden je Bild (kleiner = schneller, z. B. 300)",
+            "minimum": 80,
+            "maximum": 2000,
+            "suffix": "ms"
+        },
+        {
             "type": "Label",
             "caption": "Der ▶-Knopf in der Kachel erzeugt die Vorschau IMMER ab der aktuellen Zeit (DWD-Vorhersageradar, Wolkenverlauf) und spielt sie ab. Karte: © OpenStreetMap-Mitwirkende. Radar: DWD (maps.dwd.de). Ortsteil-Suche: Nominatim/OpenStreetMap."
         }
